@@ -18,7 +18,9 @@ public class ArxGamePlay : ModuleRules
 			new string[]	
 			{
 				"Core",
-			}
+                "ArxRuntime",
+                "Rp3dRuntime"
+            }
 			);
 			
 		
@@ -27,8 +29,6 @@ public class ArxGamePlay : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-				"ArxRuntime",
-                "Rp3dRuntime"
 			}
             );
 		
