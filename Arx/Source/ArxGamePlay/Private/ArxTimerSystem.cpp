@@ -41,7 +41,7 @@ void ArxTimerSystem::Update()
         }
         else
         {
-            World.GetEntity(Timer.Value.EntityId)->OnEvent(ArxEntity::ON_TIMER, Timer.Value.Id);
+            GetWorld().GetEntity(Timer.Value.EntityId)->OnEvent(ArxEntity::ON_TIMER, Timer.Value.Id);
         }
         DelayedTimers.HeapPopDiscard(CompairTimer, false);
     }
@@ -56,7 +56,7 @@ void ArxTimerSystem::Update()
         {
             auto& Timer = Item.Value;
             //Timer.Callback(Item.Key);
-            World.GetEntity(Timer.EntityId)->OnEvent(ArxEntity::ON_TIMER, Timer.Id);
+            GetWorld().GetEntity(Timer.EntityId)->OnEvent(ArxEntity::ON_TIMER, Timer.Id);
             if (!Timer.IsInfinity() && Timer.End >= List.Value.Begin)
             {
                 RemoveList.Add(Timer.Id);

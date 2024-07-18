@@ -1,13 +1,15 @@
 #include "ArxWorld.h"
 #include "ArxCommandSystem.h"
+#include "ArxBlackboard.h"
 
 #include "CoreMinimal.h"
 
 struct ScopedBoolean
 {
 	bool& Value;
-	ScopedBoolean(bool& Val):Value(Val){ Value = true; };
-	~ScopedBoolean() { Value = false; }
+	bool OldValue;
+	ScopedBoolean(bool& Val):Value(Val){ OldValue = Value; Value = true; };
+	~ScopedBoolean() { Value = OldValue; }
 };
 
 #define SCOPED_DETER() ScopedBoolean __SB(bDeterministic)
@@ -17,31 +19,32 @@ ArxWorld::ArxWorld(UWorld* InWorld)
     :ArxEntity(*this, 0), UnrealWorld(InWorld)
 {
 	Entities.Reserve(10000);
-	AddInternalSystem();
 }
 
 ArxWorld::~ArxWorld()
 {
-	const int Count = Entities.Num();
-	for (int i = 0; i < Count; ++i) 
+	for (auto Ent : Entities)
 	{
-		Entities[i]->Uninitialize();
+		Ent->Uninitialize();
 	}
-	for (int i = 0; i < Count; ++i)
-		delete Entities[i];
+
+	for (auto Ent : Entities)
+	{
+		delete Ent;
+	}
 }
 
 void ArxWorld::Setup(const TFunction<void(ArxWorld&)>& Callback)
 {
 	SCOPED_DETER();
+	AddInternalSystem();
 	Callback(*this);
 }
 
 void ArxWorld::AddInternalSystem()
 {
-	SCOPED_DETER();
-
 	AddSystem<ArxCommandSystem>();
+	AddSystem<ArxBlackboard>();
 }
 
 ArxEntity* ArxWorld::CreateEntity(ArxPlayerId PId , FName TypeName)
@@ -54,8 +57,8 @@ ArxEntity* ArxWorld::CreateEntity(ArxPlayerId PId , FName TypeName)
 	ArxEntityId Id = UniqueId++;
 	auto Ent = (*Fac)(*this, Id);
 	Ent->SetPlayerId(PId);
-	Ent->Initialize(false);
 	IdMap.Add(Id, Entities.Add(Ent));
+	Ent->Initialize(false);
 
 	return Ent;
 }
@@ -76,25 +79,27 @@ bool ArxWorld::IsEntityValid(ArxEntityId Id)
 void ArxWorld::Update()
 {
 	SCOPED_DETER();
-	for (auto& System : Systems)
+	for (auto Id : Systems)
 	{
-		System->PreUpdate();
+		auto Sys = GetEntity(Id);
+		static_cast<ArxSystem*>(Sys)->PreUpdate();
 	}
 
-	for (auto& System : Systems)
+	for (auto& Id : Systems)
 	{
-		System->Update();
+		auto Sys = GetEntity(Id);
+		static_cast<ArxSystem*>(Sys)->Update();
 	}
 
-	for (auto& System : Systems)
+	for (auto& Id : Systems)
 	{
-		System->PostUpdate();
+		auto Sys = GetEntity(Id);
+		static_cast<ArxSystem*>(Sys)->PostUpdate();
 	}
 
 
 	ClearDeadEntities();
 }
-#pragma optimize("",off)
 
 struct ClassInfo
 {
@@ -120,6 +125,8 @@ struct ClassInfo
 void ArxWorld::Serialize(ArxSerializer& Serializer)
 {
 	ARX_SERIALIZE_MEMBER_FAST(UniqueId);
+	ARX_SERIALIZE_MEMBER_FAST(Systems);
+	ARX_SERIALIZE_MEMBER_FAST(SystemMap);
 
 	if (Serializer.IsSaving())
 	{
@@ -130,8 +137,6 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 		for (auto& Item : IdMap)
 		{
 			ARX_SERIALIZE_MEMBER_FAST(Item)
-			//Serializer << Item.Key;
-			//Serializer << Item.Value;
 
 			auto Ent = Entities[Item.Value];
 			auto TypeName = Ent->GetClassName();
@@ -146,7 +151,6 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 		int EntCount, Space;
 		ARX_SERIALIZE_MEMBER_FAST(EntCount);
 		ARX_SERIALIZE_MEMBER_FAST(Space);
-
 
 
 
@@ -236,8 +240,6 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 			{
 				auto& Old = OldList[i];
 				RemoveList.Add(Old.Value);
-				//Old.Value->Uninitialize();
-				//delete Old.Value;
 			}
 		}
 		else if (OldList.Num() <= Index)
@@ -247,7 +249,6 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 			{
 				auto& New = NewList[i];
 				auto Ent = CreateEnt(New.Key, New.Value.PId, New.Value.Class);
-				//Entities[New.Value.IId] = Ent;
 				Entities.Insert(New.Value.IId, Ent);
 
 				IdMap.Add(New.Key, New.Value.IId);
@@ -256,7 +257,7 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 
 		for (auto Ent : RemoveList)
 		{
-			Ent->Uninitialize();
+			Ent->Uninitialize(true);
 		}
 
 		for (auto Ent : RemoveList)
@@ -265,31 +266,16 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 		}
 	}
 
-
+	const bool bIsSaving = Serializer.IsSaving();
 	for (auto Ent : Entities)
 	{
 		//Ent->Serialize(Serializer);
 		Serializer << Ent;
+		if (!bIsSaving)
+			Ent->Spawn();
 	}
 
 	Serializer << DeadList;
-	//if (Serializer.IsSaving())
-	//{
-	//	int Count = DeadList.Num();
-	//	Serializer << Count;
-	//	for (int i = 0; i < Count; ++i)
-	//		Serializer << DeadList[i];
-	//}
-	//else 
-	//{
-	//	int Count;
-	//	Serializer << Count;
-	//	DeadList.Reset();
-	//	DeadList.SetNum(Count, false);
-	//	for (int i = 0; i < Count; ++i)
-	//		Serializer << DeadList[i];
-	//}
-
 }
 
 void ArxWorld::ClearDeadEntities()
@@ -311,7 +297,6 @@ void ArxWorld::ClearDeadEntities()
 		delete Ent;
 	}
 }
-#pragma optimize("",on)
 
 uint32 ArxWorld::GetHash()
 {

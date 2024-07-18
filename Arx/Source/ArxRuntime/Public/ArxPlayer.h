@@ -18,7 +18,7 @@ public:
     virtual void RequestSnapshot(int FrameId) = 0;
 
     virtual void ResponseVerifiedFrame(int FrameId) = 0; // receive only failed
-    virtual void ResponseCommand(int FrameId, int Count, const TArray<uint8>& Command) = 0;
+    virtual void ResponseCommand(int FrameId, const TArray<uint8>& Command) = 0;
     virtual void ResponseRegister(ArxPlayerId Id) = 0;
     virtual void ResponseUnregister() = 0;
     virtual void ResponseSnapshot(int FrameId, const TArray<uint8>& Snapshot) = 0;
@@ -36,7 +36,7 @@ class ARXRUNTIME_API ArxClientPlayer : public ArxPlayerChannel
 public:
     ArxClientPlayer(UWorld* InWorld,int VerificationCycle);
 
-    void ResponseCommand(int FrameId,int Count, const TArray<uint8>& Command) override final;
+    void ResponseCommand(int FrameId, const TArray<uint8>& Command) override final;
     void ResponseRegister(ArxPlayerId Id) override final;
     void ResponseUnregister() override final;
     void ResponseVerifiedFrame(int FrameId) override final; // receive if failed
@@ -47,18 +47,20 @@ public:
     virtual void Update();
     virtual void OnFrame() = 0;
     virtual void OnRegister(ArxWorld& World) = 0;
+    virtual void OnReceiveCommand(int FrameId,  const TArray<uint8>& Data) = 0;
     virtual void CreateSnapshot(TArray<uint8>& Data) ;
 
     int GetCurrentFrameId(){return CurrentFrame;}
     ArxPlayerId GetPlayerId() override { return PlayerId; }
     ArxWorld& GetWorld(){return World;}
+
 private:
     void Tick(bool bBacktrace);
     int GetRealFrameId(int FrameId);
 
 private:
     ArxWorld World;
-    TRandomArray<TPair<int, TArray<uint8>>> Commands;
+    TRandomArray<TArray<uint8>> Commands;
     TRandomArray<TArray<uint8>> Snapshots;
 
     ArxPlayerId PlayerId = NON_PLAYER_CONTROL;
@@ -66,6 +68,8 @@ private:
     int ServerFrame = 0;
     int TargetFrame = 0;
     int VerificationCycle = 1;
+
+
     bool bStart = false;
 };
 

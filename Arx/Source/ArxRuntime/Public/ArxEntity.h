@@ -2,7 +2,6 @@
 
 #include "ArxCommon.h"
 #include "ArxReflection.h"
-#include "Internationalization/Regex.h"
 
 class ArxWorld;
 class ARXRUNTIME_API ArxEntity
@@ -12,6 +11,7 @@ public:
     enum EventType
     {
         ON_TIMER,
+        ON_BLACKBOARD_VALUE_CHANGED,
     };
 
 
@@ -29,7 +29,8 @@ public:
     virtual FName GetClassName() = 0;
     virtual void Serialize(ArxSerializer& Serializer)  {};
     virtual void Initialize(bool bIsReplicated = false) {};
-    virtual void Uninitialize(){};
+    virtual void Uninitialize(bool bIsReplicated = false){};
+    virtual void Spawn() {};
     virtual void OnEvent(uint64 Type, uint64 Param){};
     virtual uint32 GetHash(){return 0;}
 
@@ -38,25 +39,28 @@ public:
         static TMap<FName, TFunction<ArxEntity* (ArxWorld&, ArxEntityId)>> Factories;
         return Factories;
     }
-protected:
-    ArxWorld& World;
+
+    static void AddFactory(FName Name, TFunction<ArxEntity* (ArxWorld&, ArxEntityId)> Factory);
 
 private:
     void SetPlayerId(ArxPlayerId Id) {PlayerId = Id;} // called by world only
 
 private:
+    ArxWorld& WorldEntity;
     ArxEntityId EntityId = INVALID_ENTITY_ID;
     ArxPlayerId PlayerId = NON_PLAYER_CONTROL;
 };
 
 
+// register type
+
 template<class T>
-class ArxBasicEntity: public ArxEntity
+class ArxEntityRegister
 {
 public:
-    using ArxEntity::ArxEntity;
+    using Self = T;
 
-    static TFunction<ArxEntity* (ArxWorld&, ArxEntityId)> GetFactory() 
+    static TFunction<ArxEntity* (ArxWorld&, ArxEntityId)> GetFactory()
     {
         return [](ArxWorld& InWorld, ArxEntityId Id)->ArxEntity*
         {
@@ -70,23 +74,21 @@ public:
         return TypeName;
     }
 
-    virtual FName GetClassName() override
-    {
-        return GetTypeName();
-    }
 
 private:
-   static const FName TypeName;
+    static FName Register()
+    {
+        auto Name = ArxTypeName<T>();
+        ArxEntity::AddFactory(Name, T::GetFactory());
+        return Name;
+    }
+    static const FName TypeName;
 };
 
 template<class T>
-const FName ArxBasicEntity<T>::TypeName = [](){
-    auto Name = ArxTypeName<T>();
-    ArxEntity::GetFactories().Add(Name, T::GetFactory());
-    return Name;
-}();
+const FName ArxEntityRegister<T>::TypeName = ArxEntityRegister<T>::Register();
 
-
+#define GENERATED_ARX_ENTITY_BODY() public: virtual FName GetClassName() override {return GetTypeName();}
 
 
 /// serialize

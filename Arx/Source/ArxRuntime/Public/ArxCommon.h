@@ -58,4 +58,32 @@ static FName ArxTypeName()
 }
 
 
+template<class Key, class Value>
+class TDoubleMap
+{
+public:
+    void Add(const Key& K,const Value& V)
+    {
+        Fwd.Add(K,V);
+        Bwd.Add(V,K);
+    }
 
+    Value* FindForward(const Key& K)
+    {
+        return Fwd.Find(K);
+    }
+
+    Key* FindBackward(const Value& V)
+    {
+        return Bwd.Find(V);
+    }
+
+    void Reset()
+    {
+        Fwd.Reset();
+        Bwd.Reset();
+    }
+private:
+    TMap<Key, Value> Fwd;
+    TMap<Value, Key> Bwd;
+};

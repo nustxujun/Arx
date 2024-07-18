@@ -1,8 +1,14 @@
 #include "ArxServerSubsystem.h"
 
 #include "ArxPlayer.h"
+#include "ArxDelegates.h"
 
 DECLARE_CYCLE_STAT(TEXT("Arx Server Tick"), STAT_ArxServerTick, STATGROUP_ArxGroup);
+
+UArxServerSubsystem& UArxServerSubsystem::Get(UWorld* World)
+{
+	return *World->GetSubsystem<UArxServerSubsystem>();
+}
 
 void UArxServerSubsystem::Initialize(FSubsystemCollectionBase& Collection) 
 {
@@ -58,9 +64,16 @@ void UArxServerSubsystem::Pause()
 
 bool UArxServerSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
-	//auto bServer = Cast<UGameInstance>(Outer)->GetWorldContext()->RunAsDedicated;
-	//return bServer;
-	return true;
+	auto World = Cast<UWorld>(Outer);
+	auto Type = World->WorldType;
+	if( Type != EWorldType::Game && Type != EWorldType::PIE)
+		return false;
+
+#if WITH_SERVER_CODE
+	return World->GetNetMode() != NM_Client;
+#else
+	return false;
+#endif
 }
 
 void UArxServerSubsystem::AddCommands(ArxPlayerId PlayerId, int FrameId, const TArray<uint8>& Commands)
@@ -82,8 +95,7 @@ void UArxServerSubsystem::AddCommands(ArxPlayerId PlayerId, int FrameId, const T
 
 
 	auto& CurrentCommands = Frames[FrameId];
-	CurrentCommands.Key ++;
-	auto& Data = CurrentCommands.Value;
+	auto& Data = CurrentCommands;
 	int TotalCount = Data.Num();
 	int Count = Commands.Num();
 
@@ -147,10 +159,16 @@ void UArxServerSubsystem::VerifyFrames()
 void UArxServerSubsystem::Update()
 {
 	auto& Data = Frames[CurrentFrame];
+	if (Data.Num() > 0)
+	{
+		ArxDelegates::OnServerCommands.Broadcast(CurrentFrame, Data);
+	}
+
 	// sync
 	for (auto Player : Players)
 	{
-		Player.Value->ResponseCommand(CurrentFrame, Data.Key, Data.Value);
+		if (Data.Num() > 0)
+			Player.Value->ResponseCommand(CurrentFrame, Data);
 		Player.Value->SyncStep(CurrentFrame);
 	}
 
@@ -165,7 +183,7 @@ void UArxServerSubsystem::Update()
 }
 
 
-const TPair<int, TArray<uint8>>& UArxServerSubsystem::GetCommands(int FrameId)
+const TArray<uint8>& UArxServerSubsystem::GetCommands(int FrameId)
 {
 	return Frames[FrameId];
 }
@@ -204,5 +222,4 @@ const TArray<uint8>& UArxServerSubsystem::GetSnapshot(int FrameId)
 		return EmptySnapshot;
 	return VerifiedSnapshots.Get(FrameId);
 }
-
 

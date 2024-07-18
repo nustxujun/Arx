@@ -2,6 +2,7 @@
 #include "ArxServerSubsystem.h"
 #include "ArxWorld.h"
 #include "ArxCommandSystem.h"
+#include "ArxDelegates.h"
 
 DECLARE_CYCLE_STAT(TEXT("Verify Frame"), STAT_VerifyFrame, STATGROUP_ArxGroup);
 DECLARE_CYCLE_STAT(TEXT("Process Commands"), STAT_ProcessCommands, STATGROUP_ArxGroup);
@@ -12,15 +13,15 @@ ArxClientPlayer::ArxClientPlayer(UWorld* InWorld, int InVerificationCycle):World
 
 }
 
-void ArxClientPlayer::ResponseCommand(int FrameId,int Count, const TArray<uint8>& Command)
+void ArxClientPlayer::ResponseCommand(int FrameId, const TArray<uint8>& Command)
 {
-	Commands.Set(FrameId, TPair<int, TArray<uint8>>(Count, Command));
+	Commands.Set(FrameId,  Command);
+	OnReceiveCommand(FrameId,  Command);
 }
 
 void ArxClientPlayer::ResponseRegister(ArxPlayerId Id)
 {
 	PlayerId = Id;
-
 
 	World.Setup([this](ArxWorld& World) {
 		OnRegister(World);
@@ -59,7 +60,7 @@ void ArxClientPlayer::ResponseVerifiedFrame(int FrameId)
 void ArxClientPlayer::ResponseSnapshot(int FrameId, const TArray<uint8>& Snapshot) 
 {
 	auto RealFrameId = GetRealFrameId(FrameId);
-	check(Commands.Has(RealFrameId));
+	//check(Commands.Has(RealFrameId));
 	if (Snapshot.Num() != 0)
 	{
 		Snapshots.Set(RealFrameId, Snapshot);
@@ -90,8 +91,8 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 
 	while ( CurrentFrame < TargetFrame)
 	{
-		if (!Commands.Has(CurrentFrame))
-			return;
+		//if (!Commands.Has(CurrentFrame))
+		//	return;
 
 		if (!bBacktrace && CurrentFrame % VerificationCycle == 0)
 		{
@@ -99,24 +100,27 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 
 			TArray<uint8> Data;
 			CreateSnapshot(Data);
-			auto VirtualFrame = CurrentFrame / VerificationCycle;
-			SendSnapshot(VirtualFrame, Data);
+			//auto VirtualFrame = CurrentFrame / VerificationCycle;
+
+			SendSnapshot(CurrentFrame, Data);
 		}
 
 		auto& ComSys = World.GetSystem<ArxCommandSystem>();
 
 		{
-			auto& Data = Commands.Get(CurrentFrame);
-			if (Data.Key > 0)
+			if (Commands.Has(CurrentFrame))
 			{
+				auto& Data = Commands.Get(CurrentFrame);
+
 				SCOPE_CYCLE_COUNTER(STAT_ProcessCommands);
-				ComSys.ReceiveCommands(Data.Key, &Data.Value);
+				ComSys.ReceiveCommands(&Data);
 			}
 		}
 
 		World.Update();
 		OnFrame();
 
+		ArxDelegates::OnClientWorldStep.Broadcast(&World, GetPlayerId(), CurrentFrame);
 
 		{
 			TArray<uint8> Data;
@@ -132,7 +136,7 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 
 int ArxClientPlayer::GetRealFrameId(int FrameId)
 {
-	return FrameId * VerificationCycle ;
+	return FrameId ;
 }
 
 ArxServerPlayer::ArxServerPlayer(UArxServerSubsystem* InServer) :Server(InServer)
@@ -143,15 +147,31 @@ ArxServerPlayer::ArxServerPlayer(UArxServerSubsystem* InServer) :Server(InServer
 void ArxServerPlayer::SendSnapshot(int FrameId, const TArray<uint8>& Snapshot)
 {
 	auto LatestVerifiedFrame = Server->GetLatestVerifiedFrame();
+	auto Hash = FCrc::MemCrc32(Snapshot.GetData(), Snapshot.Num());
 
+	bool bDiscard = false;
 	if (FrameId <= LatestVerifiedFrame)
 	{
-		return;
+		bDiscard = true;
+
+		auto VerifiedHash = Server->GetHash(LatestVerifiedFrame);
+		if (VerifiedHash != Hash)
+		{
+			auto& SN = Server->GetSnapshot(LatestVerifiedFrame);
+			check(SN.Num() > 0);
+			ResponseSnapshot(LatestVerifiedFrame, SN);
+			ResponseVerifiedFrame(LatestVerifiedFrame);
+		}
+	}
+	else
+	{
+		FrameHashValues.Set(FrameId, Hash);
+		Snapshots.Set(FrameId, Snapshot);
 	}
 
-	auto Hash = FCrc::MemCrc32(Snapshot.GetData(), Snapshot.Num());
-	FrameHashValues.Set(FrameId, Hash);
-	Snapshots.Set(FrameId, Snapshot);
+
+
+	ArxDelegates::OnClientSnapshot.Broadcast(GetPlayerId(), FrameId, Snapshot, Hash, bDiscard);
 }
 
 void ArxServerPlayer::SendCommand(int FrameId, const TArray<uint8>& Command)
@@ -170,7 +190,7 @@ void ArxServerPlayer::RequestCommand(int FrameId)
 	if (Server->HasCommands(FrameId))
 	{
 		auto& Cmds = Server->GetCommands(FrameId);
-		ResponseCommand(FrameId, Cmds.Key, Cmds.Value);
+		ResponseCommand(FrameId,  Cmds);
 	}
 }
 
@@ -188,7 +208,7 @@ void ArxServerPlayer::RequestRegister()
 	for (int i = 0; i < CurrentFrameId; ++i)
 	{
 		auto& Cmds = Server->GetCommands(i);
-		ResponseCommand(i, Cmds.Key, Cmds.Value);
+		ResponseCommand(i,  Cmds);
 	}
 
 	

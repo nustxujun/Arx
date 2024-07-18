@@ -22,7 +22,7 @@ FORCEINLINE ArxSerializer& operator << (ArxSerializer& Ser, f64::fixed64<F>& Val
 }
 
 template<unsigned int F>
-FORCEINLINE FString LexToString(const f64::fixed64<F>& Value)
+inline FString LexToString(const f64::fixed64<F>& Value)
 {
 	return FString::Printf(TEXT("%.16lf"), (double)Value);
 }
@@ -32,23 +32,36 @@ FORCEINLINE uint32 GetTypeHash(const Rp3dVector3& Vector)
 	return FCrc::MemCrc32(&Vector, sizeof(Vector));
 }
 
-FORCEINLINE ArxSerializer& operator << (ArxSerializer& Ser, Rp3dVector3& Vector)
-{
-	Ser << Vector.x;
-	Ser << Vector.y;
-	Ser << Vector.z;
-	return Ser;
-}
-
-FORCEINLINE FString LexToString(const Rp3dVector3& Value)
+inline FString LexToString(const Rp3dVector3& Value)
 {
 	return FString::Printf(TEXT("Vec3{%s, %s, %s}"), *LexToString(Value.x), *LexToString(Value.y), *LexToString(Value.z));
+}
+
+FORCEINLINE ArxSerializer& operator << (ArxSerializer& Ser, Rp3dVector3& Vector)
+{
+	if (Ser.GetTypeName() == ArxDebugSerializer::TypeName)
+	{
+		FString Str = LexToString(Vector);
+		Ser << Str;
+	}
+	else
+	{
+		Ser << Vector.x;
+		Ser << Vector.y;
+		Ser << Vector.z;
+	}
+	return Ser;
 }
 
 
 FORCEINLINE uint32 GetTypeHash(const Rp3dQuat& Quat)
 {
 	return FCrc::MemCrc32(&Quat, sizeof(Quat));
+}
+
+inline FString LexToString(const Rp3dQuat& Value)
+{
+	return FString::Printf(TEXT("Quat{%s, %s, %s, %s}"), *LexToString(Value.x), *LexToString(Value.y), *LexToString(Value.z), *LexToString(Value.w));
 }
 
 FORCEINLINE ArxSerializer& operator << (ArxSerializer& Ser, Rp3dQuat& Quat)
@@ -60,14 +73,15 @@ FORCEINLINE ArxSerializer& operator << (ArxSerializer& Ser, Rp3dQuat& Quat)
 	return Ser;
 }
 
-FORCEINLINE FString LexToString(const Rp3dQuat& Value)
-{
-	return FString::Printf(TEXT("Quat{%s, %s, %s, %s}"), *LexToString(Value.x), *LexToString(Value.y), *LexToString(Value.z), *LexToString(Value.w));
-}
 
 FORCEINLINE uint32 GetTypeHash(const Rp3dTransform& Trans)
 {
 	return FCrc::MemCrc32(&Trans, sizeof(Trans));
+}
+
+inline FString LexToString(const Rp3dTransform& Value)
+{
+	return FString::Printf(TEXT("Transfrom{%s, %s}"), *LexToString(Value.getPosition()), *LexToString(Value.getOrientation()));
 }
 
 inline ArxSerializer& operator << (ArxSerializer& Ser, Rp3dTransform& Trans)
@@ -89,15 +103,10 @@ inline ArxSerializer& operator << (ArxSerializer& Ser, Rp3dTransform& Trans)
 	return Ser;
 }
 
-FORCEINLINE FString LexToString(const Rp3dTransform& Value)
-{
-	return FString::Printf(TEXT("Transfrom{%s, %s}"), *LexToString(Value.getPosition()), *LexToString(Value.getOrientation()));
-}
-
 
 class ArxConstants
 {
 public:
-    static constexpr ArxTimeDuration TimeStep = 1.0 / 30.0;
+    static constexpr ArxTimeDuration TimeStep = 1.0 / 15.0;
 	static constexpr int VerificationCycle = 1; // frame
 };

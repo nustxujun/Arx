@@ -5,10 +5,11 @@
 
 #define INVALID_TIMER 0
 
-class ARXGAMEPLAY_API ArxTimerSystem: public ArxBasicSystem<ArxTimerSystem>
+class ARXGAMEPLAY_API ArxTimerSystem: public ArxSystem, public ArxEntityRegister<ArxTimerSystem>
 {
+    GENERATED_ARX_ENTITY_BODY()
 public:
-    using ArxBasicSystem::ArxBasicSystem;
+    using ArxSystem::ArxSystem;
     virtual void Update() override;
 
     int AddTimer(ArxEntityId, ArxTimeDuration Delay, ArxTimeDuration Interval = 0, ArxTimeDuration Duration = 0);

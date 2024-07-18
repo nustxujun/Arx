@@ -1,21 +1,25 @@
-#include "ArxRenderActor.h"
+#include "ArxRenderable.h"
 #include "ArxWorld.h"
 
-void AArxRenderActor::LinkEntity(ArxEntity* Ent)
+void IArxRenderable::LinkEntity(ArxEntity* Ent)
 {
 	World = &Ent->GetWorld();
 	EntityId = Ent->GetId();
 }
 
-void AArxRenderActor::UnlinkEntity()
+void IArxRenderable::UnlinkEntity()
 {
 	EntityId = INVALID_ENTITY_ID;
 }
 
-ArxEntity* AArxRenderActor::GetEntity()
+ArxEntity* IArxRenderable::GetEntity()
 {
 	if (EntityId == INVALID_ENTITY_ID)
 		return nullptr;
 	return World->GetEntity(EntityId);
 }
 
+AActor* IArxRenderable::GetActor()
+{
+	return Cast<AActor>(this);
+}

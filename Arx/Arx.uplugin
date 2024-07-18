@@ -24,13 +24,17 @@
 			"Name": "ArxGamePlay",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "ArxReplay",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [
 		{
 			"Name": "reactphysics3d",
-			"Enabled": true,
-			"Optional": true
+			"Enabled": true
 		}
 	]
 }

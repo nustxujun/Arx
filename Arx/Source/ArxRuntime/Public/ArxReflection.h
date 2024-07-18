@@ -51,7 +51,7 @@ namespace Arx
     template<size_t I, class T, class F>
     void VisitSingleField(T& val, const F& f)
     {
-        f(GetField< T, I>(val));
+        f(GetField< T, I>(val), GetFieldName<T,I>());
     }
 
     template<class F, class T,  size_t ... Indices>

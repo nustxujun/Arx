@@ -1,5 +1,4 @@
 #include "ArxSerializer.h"
-#pragma optimize("",off)
 
 const FName ArxDataSerializer::TypeName = "DataSerializer";
 const FName ArxDebugSerializer::TypeName = "DebugSerializer";
@@ -31,10 +30,24 @@ void ArxDataSerializer::Serialize(void* Value, int Size)
 	}
 	else
 	{
+		check(ReadPos + Size <= Content.Num())
 		FMemory::Memcpy(Value, &Content[ReadPos], Size);
 		ReadPos += Size;
 	}
 }
+
+bool ArxDataSerializer::AtEnd()
+{
+	if (IsSaving())
+	{
+		return false;
+	}
+	else
+	{
+		return ReadPos >= Content.Num();
+	}
+}
+
 
 ArxDebugSerializer::ArxDebugSerializer(TArray<uint8>& Data) :Content(Data)
 {
@@ -49,4 +62,3 @@ void ArxDebugSerializer::Serialize(void* Value, int Size)
 	FMemory::Memcpy(&Content[Begin], Value, Size);
 }
 
-#pragma optimize("",on)

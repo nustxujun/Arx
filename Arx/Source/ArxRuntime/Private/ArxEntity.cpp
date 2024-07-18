@@ -2,7 +2,7 @@
 #include "ArxWorld.h"
 
 ArxEntity::ArxEntity(ArxWorld& InWorld, ArxEntityId Id)
-	: World(InWorld), EntityId(Id)
+	: WorldEntity(InWorld), EntityId(Id)
 {
 }
 
@@ -12,6 +12,10 @@ ArxEntity::~ArxEntity()
 
 ArxWorld& ArxEntity::GetWorld()
 {
-	return World;
+	return WorldEntity;
 }
 
+void ArxEntity::AddFactory(FName Name, TFunction<ArxEntity* (ArxWorld&, ArxEntityId)> Factory)
+{
+	GetFactories().Add(Name, MoveTemp(Factory));
+}

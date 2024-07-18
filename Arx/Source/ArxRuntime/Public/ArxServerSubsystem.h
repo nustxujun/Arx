@@ -12,12 +12,14 @@ class ARXRUNTIME_API UArxServerSubsystem: public UWorldSubsystem
 {
     GENERATED_BODY()
 public:
+    static UArxServerSubsystem& Get(UWorld* World);
+
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
     bool ShouldCreateSubsystem(UObject* Outer) const override;
     
     void AddCommands(ArxPlayerId PlayerId, int FrameId, const TArray<uint8>& Commands);
-    const TPair<int, TArray<uint8>>& GetCommands(int FrameId);
+    const TArray<uint8>& GetCommands(int FrameId);
     bool HasCommands(int FrameId);
     
     uint32 GetHash(int FrameId);
@@ -36,7 +38,7 @@ public:
 private:
     void VerifyFrames();
 private:
-    TArray<TPair<int, TArray<uint8>>> Frames ;
+    TArray<TArray<uint8>> Frames ;
     TRandomArray<TArray<uint8>> VerifiedSnapshots;
     TRandomArray<uint32> VerifiedHashs;
     TMap<ArxPlayerId, ArxServerPlayer*> Players;

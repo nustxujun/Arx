@@ -17,17 +17,17 @@ public:
     ArxSystem& AddSystem()
     {
         auto Sys = CreateEntity<T>();
-        SystemMap.Add(ArxTypeId<T>(), Sys);
-        Systems.Add(Sys);
+        SystemMap.Add(ArxTypeId<T>(), Sys->GetId());
+        Systems.Add(Sys->GetId());
         return *Sys;
     }
 
     template<class T>
     T& GetSystem()
     {
-        auto Sys = SystemMap.FindRef(ArxTypeId<T>());
+        auto Sys = SystemMap.Find(ArxTypeId<T>());
         check(Sys);
-        return *(T*)Sys;
+        return GetEntity<T>(*Sys);
     }
 
     ArxEntity* GetEntity(ArxEntityId EntId)
@@ -37,6 +37,16 @@ public:
         auto Ret = IdMap.Find(EntId);
         check(Ret)
         return Entities[*Ret];
+    }
+
+    template<class T>
+    T& GetEntity(ArxEntityId EntId)
+    {
+        auto Ret = IdMap.Find(EntId);
+        check(Ret);
+        auto Ent = Entities[*Ret];
+        check(Ent->GetClassName() == ArxTypeName<T>());
+        return *static_cast<T*>(Ent);
     }
 
     template<class T>
@@ -67,8 +77,8 @@ private:
     void ClearDeadEntities();
 private:
     class UWorld* UnrealWorld;
-    TArray<ArxSystem*> Systems; 
-    TMap<uint64_t, ArxSystem*> SystemMap;
+    TArray<ArxEntityId> Systems; 
+    TSortedMap<uint64_t, ArxEntityId> SystemMap;
     TSparseArray<ArxEntity*> Entities;
     TMap<ArxEntityId, uint32> IdMap;
     TArray<ArxEntityId> DeadList;
