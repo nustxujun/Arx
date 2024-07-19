@@ -4,7 +4,7 @@
 #include "ArxCommon.h"
 #include "ArxSystem.h"
 #include "ArxCommandSystem.h"
-
+#include "ArxWorld.h"
 
 using ArxBlackboardId = uint32;
 

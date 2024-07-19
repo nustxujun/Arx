@@ -42,7 +42,7 @@ void UArxServerSubsystem::Start(float Interval)
 			TotalTime = 0;
 #else
 			TotalTime -= Interval;
-#endif;
+#endif
 		}
 		return true;
 	}), 0);

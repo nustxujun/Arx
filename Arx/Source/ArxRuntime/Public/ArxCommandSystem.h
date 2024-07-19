@@ -108,7 +108,7 @@ const FName ArxCommand<T>::TypeName = ArxCommand<T>::Register();
             Serialize(Members,Ser, std::make_index_sequence < std::tuple_size<decltype(Members)>{} > {});\
         }\
         template<class ... ParameterType> void Execute(Self& CurEnt, ArxPlayerId PId, const ParameterType& ... Params)const{\
-            CurEnt.##Name##_Internal(PId, Params...);\
+            CurEnt.Name##_Internal(PId, Params...);\
         }\
         template<class Tuple, std::size_t ... Index> void Execute(Tuple& InTuple, Self& CurEnt,ArxPlayerId PId, std::index_sequence<Index...>const) const{\
             Execute(CurEnt, PId, std::get<Index>(InTuple) ...); \

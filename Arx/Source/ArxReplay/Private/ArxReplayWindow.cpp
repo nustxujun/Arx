@@ -85,7 +85,7 @@ static void DrawText(const FGeometry& Geometry, int LayerId, FSlateWindowElement
 
 static void DrawLine(const FGeometry& Geometry, int LayerId, FSlateWindowElementList& OutDrawElements, float X1, float Y1, float X2, float Y2, const ESlateDrawEffect InDrawEffects, float Thickness, const FLinearColor& Color)
 {
-	FSlateDrawElement::MakeLines(OutDrawElements, LayerId, Geometry.ToPaintGeometry(), {{X1, Y1},{X2,Y2}},InDrawEffects,Color, false, Thickness);
+	FSlateDrawElement::MakeLines(OutDrawElements, LayerId, Geometry.ToPaintGeometry(), TArray<FVector2D>{{X1, Y1},{X2,Y2}},InDrawEffects,Color, false, Thickness);
 }
 
 static void DrawLines(const FGeometry& Geometry, int LayerId, FSlateWindowElementList& OutDrawElements, const TArray<FVector2D>& Lines, const ESlateDrawEffect InDrawEffects, float Thickness, const FLinearColor& Color)
@@ -412,7 +412,7 @@ FReply ArxReplayFrameTrack::OnMouseButtonUp(const FGeometry& MyGeometry, const F
 	}
 
 	auto Pos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-	if (!bMouseIsMoving && Index < 2 && (Pos - PressedMousePosition).IsZero())
+	if (!bMouseIsMoving && Index < 2 && (Pos - PressedMousePosition).Size() < 0.1f)
 	{
 		auto& Selected = Selecteds[Index];
 		Selected = GetFrameByPos(Pos.X, Pos.Y);

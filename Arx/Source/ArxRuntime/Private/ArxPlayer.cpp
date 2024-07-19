@@ -23,8 +23,8 @@ void ArxClientPlayer::ResponseRegister(ArxPlayerId Id)
 {
 	PlayerId = Id;
 
-	World.Setup([this](ArxWorld& World) {
-		OnRegister(World);
+	World.Setup([this](ArxWorld& W) {
+		OnRegister(W);
 	});
 }
 

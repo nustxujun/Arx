@@ -54,7 +54,7 @@ void ArxCommandSystem::Update()
 
             check(Executers.IsValidIndex(ExtIdx));
 
-            FuncList.Add([this, EntId, PlyId, Func = std::move(Executers[ExtIdx](Serializer))]() {
+            FuncList.Add([this, EntId, PlyId, Func = Executers[ExtIdx](Serializer)]() {
                 auto Ent = GetWorld().GetEntity(EntId);
                 Func(*Ent, PlyId);
             });
