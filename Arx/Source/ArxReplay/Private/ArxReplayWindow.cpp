@@ -12,6 +12,9 @@
 
 #if WITH_EDITOR
 #include "Editor.h"
+#include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
+
 #endif
 
 #define LOCTEXT_NAMESPACE "ArxReplay"
@@ -418,13 +421,16 @@ FReply ArxReplayFrameTrack::OnMouseButtonUp(const FGeometry& MyGeometry, const F
 		Selected = GetFrameByPos(Pos.X, Pos.Y);
 		if (Tracks.IsValidIndex(Selected.Key) && Tracks[Selected.Key].Frames.IsValidIndex(Selected.Value))
 		{
-			TArray<TPair<FString, const FReplayFrame&>> List;
-			for (auto& Track : Tracks)
+			auto Getter = [this](auto FrameId, auto Func)->const FReplayFrame*
 			{
-				if (Track.Frames.IsValidIndex(Selected.Value))
-					List.Add(TPair<FString, const FReplayFrame&>{Track.Name, Track.Frames[Selected.Value]});
-			}
-			OnFrameChanged(List, Tracks[Selected.Key].Name, Tracks[Selected.Key].Frames[Selected.Value], Index);
+				for (auto& Track : Tracks)
+				{
+					if (Track.Frames.IsValidIndex(FrameId) && Func(Track.Name,Track.Frames[FrameId]))
+						return &Track.Frames[FrameId];
+				}
+				return nullptr;
+			};
+			OnFrameChanged(Getter, Tracks[Selected.Key].Name, Tracks[Selected.Key].Frames[Selected.Value], Index);
 		}
 	}
 
@@ -452,9 +458,9 @@ TPair<int, int> ArxReplayFrameTrack::GetFrameByPos(float X, float Y)const
 }
 
 
-void ArxReplayFrameTrack::AddTrack(const FString& Name, TArray<FReplayFrame> Frames, bool bCmp)
+void ArxReplayFrameTrack::AddTrack(const FString& Name,const TArray<FReplayFrame>& Frames, bool bCmp)
 {
-	Tracks.Add({Name, MoveTemp(Frames),bCmp });
+	Tracks.Add({Name, Frames,bCmp });
 
 	HintBeginY = FrameBeginY + Tracks.Num() * FrameHeight + 10;
 	RequiredHeight = HintBeginY + HintHeight + 10;
@@ -495,6 +501,11 @@ static const FTableRowStyle* GetStyle(int State)
 	}
 }
 
+void ArxReplayWindow::InitWorld(UPackage* Package )
+{
+	DummyWorld = MakeShared<FDummyWorld>(Package);
+}
+
 void ArxReplayWindow::Construct(const FArguments&)
 {
 	static const auto Path = FPaths::Combine(FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir()), TEXT("Arx"));
@@ -523,7 +534,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 	auto MakeStepEvent = [this](int Index){
 		return [this, Index](){
 			auto Reply = FReply::Handled();
-			if (DummyWorld)
+			if (DummyWorld && TextViews[Index].Snapshot.Num() > 0)
 			{
 				ArxReader Reader(TextViews[Index].Snapshot);
 				DummyWorld->Serialize(Reader);
@@ -532,6 +543,21 @@ void ArxReplayWindow::Construct(const FArguments&)
 				ComSys.ReceiveCommands(&TextViews[Index].Commands);
 
 				DummyWorld->World->Update();
+
+				auto FrameId = TextViews[Index].FrameId + 1;
+				while (SimulationTrack.Num() <= FrameId)
+				{
+					SimulationTrack.AddDefaulted();
+				}
+
+				auto& Data = SimulationTrack[FrameId].Data;
+				Data.Reset();
+
+				ArxWriter Writer(Data);
+				DummyWorld->World->Serialize(Writer);
+
+				auto Hash = FCrc::MemCrc32(Data.GetData(), Data.Num());
+				SimulationTrack[FrameId].State = (Hash == TextViews[Index].StdHash) ? FReplayFrame::E_NORMAL : FReplayFrame::E_DIFF;
 			}
 			return Reply;
 		};
@@ -627,7 +653,51 @@ void ArxReplayWindow::Construct(const FArguments&)
 							return Reply;
 						}))
 					]
+
 				]
+#if WITH_EDITOR
+				+ SVerticalBox::Slot().AutoHeight()
+				[
+					SNew(SButton)
+					.HAlign(EHorizontalAlignment::HAlign_Center)
+					.ButtonColorAndOpacity_Lambda([this](){
+						if (!DummyWorld || !DummyWorld->Package)
+							return FLinearColor(1,0.5,0.5);
+						else
+							return FLinearColor(0.5, 1.0, 0.5);
+
+					
+					})
+					.OnClicked(FOnClicked::CreateLambda([this]() {
+						auto Reply = FReply::Handled();
+
+						const FVector2D AssetPickerSize(600.0f, 586.0f);
+						auto ActualWidget = SNew(ArxReplayOpenAssetDialog, AssetPickerSize, this);
+
+						auto Parent = FSlateApplication::Get().GetActiveTopLevelWindow();
+						auto Window = SNew(SWindow).MinWidth(586.0f).MinHeight(600.0f)
+						[
+							ActualWidget
+						];
+
+						ActualWidget->OnSelected = [this, Window](UPackage* Package) {
+							InitWorld(Package);
+							FSlateApplication::Get().RequestDestroyWindow(Window);
+						};
+
+						FSlateApplication::Get().AddModalWindow(Window, Parent);
+
+						return Reply;
+					}))
+					.Text_Lambda([this]() {
+						if (!DummyWorld || !DummyWorld->Package)
+							return FText::FromString(TEXT("Select Map"));
+						else
+							return FText::FromString(DummyWorld->Package->GetName());
+
+					})
+				]
+#endif
 				+ SVerticalBox::Slot()
 				[
 					SNew(SHorizontalBox)
@@ -657,15 +727,19 @@ void ArxReplayWindow::Construct(const FArguments&)
 							];
 						})
 						.OnMouseButtonClick_Lambda([this](auto& Item) {
-							DummyWorld = MakeShared< FDummyWorld>();
-
-							TrackWidght->Reset();
-							TrackWidght->AddTrack(TEXT("Commands"), Item->Commands, false);
+							//InitWorld();
+							if (!DummyWorld)
+								InitWorld();
+							SimulationTrack.Reset();
+							TrackWidget->Reset();
+							TrackWidget->AddTrack(TEXT("Commands"), Item->Commands, false);
 
 							for (auto& Player : Item->PlayerTrackSource)
 							{
-								TrackWidght->AddTrack(LexToString(Player.PId), Player.FrameSource,true);
+								TrackWidget->AddTrack(LexToString(Player.PId), Player.FrameSource,true);
 							}
+
+							TrackWidget->AddTrack(TEXT("Simulation"), SimulationTrack, false);
 						})
 					]
 					+ SHorizontalBox::Slot().Padding(2)
@@ -676,12 +750,12 @@ void ArxReplayWindow::Construct(const FArguments&)
 							// frame track
 							SNew(SBox)
 							.HeightOverride_Lambda([this]()->FOptionalSize {
-								if (TrackWidght)
-									return TrackWidght->GetRequiredHeight();
+								if (TrackWidget)
+									return TrackWidget->GetRequiredHeight();
 								return 200.0f;
 							})
 							[
-								SAssignNew(TrackWidght,ArxReplayFrameTrack)
+								SAssignNew(TrackWidget,ArxReplayFrameTrack)
 							]
 						]
 						+ SVerticalBox::Slot().FillHeight(1.0f)
@@ -738,7 +812,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 		]
 	];
 
-	TrackWidght->SetFrameListener([this](auto& List, auto& Name, auto& Frame, int Index){
+	TrackWidget->SetFrameListener([this](auto Getter, auto& Name, auto& Frame, int Index){
 
 		if (Name == TEXT("Commands"))
 		{
@@ -765,12 +839,26 @@ void ArxReplayWindow::Construct(const FArguments&)
 			TextViews[Index].Refresh(Data);
 
 			TextViews[Index].Snapshot = Frame.Data;
-			auto Cmds = List.FindByPredicate([](auto& a) {
-				return a.Key == TEXT("Commands");
+			TextViews[Index].FrameId = Frame.FrameId;
+
+			auto StdFrame = Getter(Frame.FrameId + 1, [](auto& Name, auto& Frame) {
+				return Name != TEXT("Commands") && Frame.State == FReplayFrame::E_NORMAL;
+			});
+
+			if (StdFrame)
+			{
+				TextViews[Index].StdHash = StdFrame->Hash;
+			}
+
+			auto Cmds = Getter( Frame.FrameId, [](auto& Name, auto& Frame){
+				return Name == TEXT("Commands");
 			});
 
 			if (Cmds)
-				TextViews[Index].Commands = Cmds->Value.Data;
+				TextViews[Index].Commands = Cmds->Data;
+			else
+				TextViews[Index].Commands.Reset();
+				
 
 			auto ResetItem = [](auto& Item, auto State){
 				if (Item->State == State)
@@ -827,7 +915,8 @@ void ArxReplayWindow::Construct(const FArguments&)
 
 void ArxReplayWindow::SetContent(const FString& ParentPath) 
 {
-
+	SimulationTrack.Reset();
+	TrackWidget->Reset();
 	auto& FileMgr = IFileManager::Get();
 	LevelTrackSource.Reset();
 	FileMgr.IterateDirectory(*ParentPath, [&](auto Name, bool bDir) {
@@ -969,9 +1058,23 @@ void ArxReplayWindow::SetContent(const FString& ParentPath)
 
 
 
-ArxReplayWindow::FDummyWorld::FDummyWorld()
+ArxReplayWindow::FDummyWorld::FDummyWorld(UPackage* InPackage)
 {
-	UnrealWorld = UWorld::CreateWorld(EWorldType::Editor, false, TEXT("ArxDummyWorld"));
+	Package = InPackage;
+	if (Package)
+	{
+		UnrealWorld = UWorld::FindWorldInPackage(Package);
+	}
+	else
+	{
+		FWorldContext* WorldContext = GEngine->GetWorldContextFromGameViewport(GEngine->GameViewport);
+		auto CurWorld = WorldContext->World();
+		if (CurWorld->WorldType == EWorldType::Game)
+			UnrealWorld = CurWorld;
+		else
+			UnrealWorld = UWorld::CreateWorld(EWorldType::Editor, false, TEXT("ArxDummyWorld"));
+	}
+	check(UnrealWorld);
 	World = MakeShared<ArxWorld>(UnrealWorld);
 }
 
@@ -988,6 +1091,8 @@ void ArxReplayWindow::FDummyWorld::Serialize(ArxSerializer& Ser)
 void ArxReplayWindow::FDummyWorld::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	Collector.AddReferencedObject(UnrealWorld);
+	Collector.AddReferencedObject(Package);
+	
 }
 
 
@@ -1017,40 +1122,81 @@ void ArxReplayWindow::FTextView::Refresh(const TArray<uint8>& Data)
 
 
 
-UArxReplayEditor& UArxReplayEditor::Get()
-{
-	return *GEngine->GetEngineSubsystem<UArxReplayEditor>();
-}
-
-void UArxReplayEditor::Initialize(FSubsystemCollectionBase& Collection)
-{
-	FGlobalTabmanager::Get()->RegisterTabSpawner(TEXT("ReplayTab"), FOnSpawnTab::CreateLambda([this](auto Args) {
-		return SNew(SDockTab).TabRole(ETabRole::NomadTab)
-			[
-				SAssignNew(ReplayWindow,ArxReplayWindow)
-			];
-		}));
-
-	FGlobalTabmanager::Get()->TryInvokeTab(FName(TEXT("ReplayTab")));
-
-}
-
-void UArxReplayEditor::Deinitialize()
-{
-	ReplayWindow.Reset();
-}
-
-
-
-bool UArxReplayEditor::ShouldCreateSubsystem(UObject* Outer) const
+void ArxReplayOpenAssetDialog::Construct(const FArguments& InArgs, FVector2D InSize, ArxReplayWindow* InParent)
 {
 #if WITH_EDITOR
-	return !IsRunningCommandlet();
-#else
-	return false;
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+
+	FAssetPickerConfig AssetPickerConfig;
+	AssetPickerConfig.OnAssetDoubleClicked = FOnAssetSelected::CreateSP(this, &ArxReplayOpenAssetDialog::OnAssetSelectedFromPicker);
+	AssetPickerConfig.OnAssetEnterPressed = FOnAssetEnterPressed::CreateSP(this, &ArxReplayOpenAssetDialog::OnPressedEnterOnAssetsInPicker);
+	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+	AssetPickerConfig.bAllowNullSelection = false;
+	AssetPickerConfig.bShowBottomToolbar = true;
+	AssetPickerConfig.bAutohideSearchBar = false;
+	AssetPickerConfig.bCanShowClasses = false;
+	AssetPickerConfig.bAddFilterUI = true;
+	AssetPickerConfig.SaveSettingsName = TEXT("AssetPicker");
+	AssetPickerConfig.Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
+
+	ChildSlot
+	[
+		SNew(SBox)
+		.WidthOverride(InSize.X)
+		.HeightOverride(InSize.Y)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			[
+				ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
+			]
+		]
+	];
 #endif
 }
 
+
+FReply ArxReplayOpenAssetDialog::OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (InKeyEvent.GetKey() == EKeys::Escape)
+	{
+		FSlateApplication::Get().DismissAllMenus();
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
+void ArxReplayOpenAssetDialog::OnAssetSelectedFromPicker(const FAssetData& AssetData)
+{
+	
+	auto Package = ::FindPackage(nullptr, *AssetData.PackageName.ToString());
+	if (!Package)
+	{
+		Package = LoadPackage(nullptr, *AssetData.PackageName.ToString(), LOAD_None);
+	}
+	check(Package);
+	if (OnSelected)
+		OnSelected(Package);
+}
+
+void ArxReplayOpenAssetDialog::OnPressedEnterOnAssetsInPicker(const TArray<FAssetData>& SelectedAssets)
+{
+	for (auto& AssetData: SelectedAssets)
+	{
+		auto Package = ::FindPackage(nullptr, *AssetData.PackageName.ToString());
+		if (!Package)
+		{
+			Package = LoadPackage(nullptr, *AssetData.PackageName.ToString(), LOAD_None);
+		}
+		check(Package);
+		if (OnSelected)
+			OnSelected(Package);
+
+		return;
+	}
+}
 
 
 #undef LOCTEXT_NAMESPACE

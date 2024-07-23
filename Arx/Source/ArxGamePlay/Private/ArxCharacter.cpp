@@ -23,7 +23,7 @@ void ArxCharacter::FContainer::AddReferencedObjects(FReferenceCollector& Collect
 	if (CollisionShape)
 		Collector.AddReferencedObject(CollisionShape);
 }
-
+#pragma optimize("",off)
 void ArxCharacter::Initialize(bool bIsReplicated)
 {
 	FWorldContext* WorldContext = GEngine->GetWorldContextFromGameViewport(GEngine->GameViewport);
@@ -61,6 +61,7 @@ void ArxCharacter::Initialize(bool bIsReplicated)
 
 	}
 }
+#pragma optimize("",on)
 
 void ArxCharacter::Uninitialize(bool bIsReplicated)
 {

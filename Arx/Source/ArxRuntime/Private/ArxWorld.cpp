@@ -269,7 +269,6 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 	const bool bIsSaving = Serializer.IsSaving();
 	for (auto Ent : Entities)
 	{
-		//Ent->Serialize(Serializer);
 		Serializer << Ent;
 		if (!bIsSaving)
 			Ent->Spawn();

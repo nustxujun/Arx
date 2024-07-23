@@ -34,7 +34,7 @@ FORCEINLINE uint32 GetTypeHash(const Rp3dVector3& Vector)
 
 inline FString LexToString(const Rp3dVector3& Value)
 {
-	return FString::Printf(TEXT("Vec3{%s, %s, %s}"), *LexToString(Value.x), *LexToString(Value.y), *LexToString(Value.z));
+	return FString::Printf(TEXT("Vec3{%s, %s, %s}"), *LexToString(RP3D_TO_UE(Value.x)), *LexToString(RP3D_TO_UE(Value.y)), *LexToString(RP3D_TO_UE(Value.z)));
 }
 
 FORCEINLINE ArxSerializer& operator << (ArxSerializer& Ser, Rp3dVector3& Vector)
@@ -108,5 +108,6 @@ class ArxConstants
 {
 public:
     static constexpr ArxTimeDuration TimeStep = 1.0 / 15.0;
+	static constexpr int NumPhysicsStep = 4;
 	static constexpr int VerificationCycle = 1; // frame
 };

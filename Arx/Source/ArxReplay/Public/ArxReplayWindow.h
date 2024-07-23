@@ -4,8 +4,8 @@
 
 #include "ArxCommon.h"
 #include "Widgets/SWidget.h"
-
-#include "ArxReplayWindow.generated.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 
 
 struct FReplayFrame
@@ -49,10 +49,10 @@ public:
     virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
     virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 
-    void AddTrack(const FString& Name, TArray<FReplayFrame> Frames, bool bCmp);
+    void AddTrack(const FString& Name,const TArray<FReplayFrame>& Frames, bool bCmp);
     float GetRequiredHeight(){return FMath::Max(50.0f, RequiredHeight);}
 
-    using FrameListener = TFunction<void(const TArray<TPair<FString, const FReplayFrame&>>&, const FString&, const FReplayFrame&, int)>;
+    using FrameListener = TFunction<void(TFunction<const FReplayFrame*( int, TFunction<bool(const FString&, const FReplayFrame& )>)> FrameGetter, const FString&, const FReplayFrame&, int)>;
     void SetFrameListener(FrameListener  Callback){ OnFrameChanged  = MoveTemp(Callback); };
 private:
     TPair<int, int> GetFrameByPos(float X, float Y)const ;
@@ -62,7 +62,7 @@ private:
     struct Track
     {
         FString Name;
-        TArray<FReplayFrame> Frames;
+        const TArray<FReplayFrame>& Frames;
         bool bNeedCompare;
     };
     TArray<Track> Tracks;
@@ -97,6 +97,28 @@ private:
 
 };
 
+class ARXREPLAY_API ArxReplayOpenAssetDialog: public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(ArxReplayOpenAssetDialog){}
+	SLATE_END_ARGS()
+
+public:
+	void Construct(const FArguments& InArgs, FVector2D InSize, class ArxReplayWindow*);
+
+	// SWidget interface
+	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+	// End of SWidget interface
+
+protected:
+	void OnAssetSelectedFromPicker(const struct FAssetData& AssetData);
+	void OnPressedEnterOnAssetsInPicker(const TArray<struct FAssetData>& SelectedAssets);
+
+public:
+    TFunction<void(UPackage*)> OnSelected;
+};
+
+
 class ARXREPLAY_API ArxReplayWindow: public SCompoundWidget
 {
 public:
@@ -110,7 +132,8 @@ public:
     void Construct(const FArguments& InArgs);
 
     void SetContent(const FString& ParentPath);
-
+ 
+    void InitWorld(UPackage* Package = nullptr);
 private:
     using FileItem = TSharedPtr<FString>;
     TSharedPtr<SListView<FileItem>> FileList;
@@ -141,14 +164,15 @@ private:
     using LevelTrack = TSharedPtr<ReplayInfo>;
     TArray<LevelTrack> LevelTrackSource;
     TSharedPtr<SListView<LevelTrack>> LevelList;
-    TSharedPtr<ArxReplayFrameTrack> TrackWidght;
-    
+    TSharedPtr<ArxReplayFrameTrack> TrackWidget;
+    TArray<FReplayFrame> SimulationTrack;
 
     struct FDummyWorld : public FGCObject
     {
         UWorld* UnrealWorld = nullptr;
+        UPackage* Package = nullptr;
         TSharedPtr<ArxWorld> World ;
-        FDummyWorld();
+        FDummyWorld(UPackage* Package);
         ~FDummyWorld();
 
         void AddReferencedObjects(FReferenceCollector& Collector) override;
@@ -187,26 +211,11 @@ private:
         TSharedPtr<SListView<TextItem>> Widget;
         TArray<uint8> Snapshot;
         TArray<uint8> Commands;
-        int FrameId;
+        int FrameId = 0;
+        uint32 StdHash = 0;
 
         void Refresh(const TArray<uint8>& Data);
     }TextViews[2];
 
-};
-
-UCLASS()
-class UArxReplayEditor : public UEngineSubsystem
-{
-    GENERATED_BODY()
-public:
-    static UArxReplayEditor& Get();
-
-    void Initialize(FSubsystemCollectionBase& Collection);
-    void Deinitialize();
-    bool ShouldCreateSubsystem(UObject* Outer) const override;
-
-private:
-    TSharedPtr<ArxReplayWindow> ReplayWindow;
-    TSharedPtr<ArxWorld> World;
 };
 

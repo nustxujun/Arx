@@ -40,7 +40,13 @@ public class ArxReplay : ModuleRules
 
         if (Target.bBuildEditor)
         {
-            PrivateDependencyModuleNames.Add("UnrealEd");
+            PrivateDependencyModuleNames.AddRange(
+				new string[] 
+				{ 
+					"UnrealEd",
+					"ToolMenus",
+					"Projects",
+                });
         }
 
 

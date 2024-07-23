@@ -23,7 +23,7 @@ void ArxPhysicsSystem::Initialize(bool bIsReplicated)
 		if (Comp)
 			Comp->OnCreateRp3dState(PhysicsWorld);
 	}
-
+	
 }
 
 void ArxPhysicsSystem::Uninitialize(bool bIsReplicated)
@@ -39,7 +39,9 @@ void ArxPhysicsSystem::Serialize(ArxSerializer& Serializer)
 
 void ArxPhysicsSystem::Update()
 {
-	PhysicsWorld->UpdatePhysics(ArxConstants::TimeStep);
+	constexpr auto SubstempTime = ArxConstants::TimeStep / ArxConstants::NumPhysicsStep;
+	for (int i = 0; i < ArxConstants::NumPhysicsStep; ++i)
+		PhysicsWorld->Step(SubstempTime);
 }
 
 void ArxPhysicsSystem::AddReferencedObjects(FReferenceCollector& Collector)

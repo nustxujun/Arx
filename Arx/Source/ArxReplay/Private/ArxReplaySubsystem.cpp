@@ -22,9 +22,6 @@ void UArxReplaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	SnapshotHandle = ArxDelegates::OnClientSnapshot.AddUObject(this, &UArxReplaySubsystem::OnSnapshot);
 	LocalSnapshotHandle = ArxDelegates::OnClientWorldStep.AddUObject(this, &UArxReplaySubsystem::OnLocalSnapshot);
 
-
-
-
 }
 
 void UArxReplaySubsystem::PrepareDirectory()
@@ -122,3 +119,4 @@ void UArxReplaySubsystem::OnLocalSnapshot(ArxWorld* World, ArxPlayerId PId, int 
 	File->Serialize(DebugData.GetData(),Count);
 	delete File;
 }
+
