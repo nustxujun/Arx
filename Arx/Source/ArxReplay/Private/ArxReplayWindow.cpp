@@ -415,7 +415,9 @@ FReply ArxReplayFrameTrack::OnMouseButtonUp(const FGeometry& MyGeometry, const F
 	}
 
 	auto Pos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-	if (!bMouseIsMoving && Index < 2 && (Pos - PressedMousePosition).Size() < 0.1f)
+
+	constexpr int NumPlayerLimit = 3;
+	if (!bMouseIsMoving && Index < NumPlayerLimit && (Pos - PressedMousePosition).Size() < 0.1f)
 	{
 		auto& Selected = Selecteds[Index];
 		Selected = GetFrameByPos(Pos.X, Pos.Y);
