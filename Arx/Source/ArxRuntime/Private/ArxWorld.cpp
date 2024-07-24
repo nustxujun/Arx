@@ -107,7 +107,7 @@ struct ClassInfo
 	uint32 IId;
 	ArxPlayerId PId;
 
-	friend static ArxBasicSerializer& operator <<(ArxBasicSerializer& Serializer, ClassInfo& CI)
+	friend inline ArxBasicSerializer& operator <<(ArxBasicSerializer& Serializer, ClassInfo& CI)
 	{
 		//ARX_SERIALIZE_MEMBER_FAST(CI.Class);
 		ARX_SERIALIZE_MEMBER_FAST(CI.IId);
@@ -116,7 +116,7 @@ struct ClassInfo
 		return Serializer;
 	}
 
-	friend static FString LexToString(const ClassInfo& CI)
+	friend inline FString LexToString(const ClassInfo& CI)
 	{
 		return FString::Printf(TEXT("{%s, %d, %d}"), *CI.Class.ToString(), CI.IId, CI.PId);
 	}

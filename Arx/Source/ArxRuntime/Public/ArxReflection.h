@@ -2,13 +2,16 @@
 
 namespace Arx
 {
+    template <class... _Types>
+    using HasType = void;
+
     template <size_t, class, template <size_t, class> class, class = void>
     struct FieldIndexImpl {
         static constexpr size_t Index = 0;
     };
 
     template <size_t I, class M, template <size_t, class> class T>
-    struct FieldIndexImpl<I, M, T, std::void_t< typename T<I,M>::Exist >>
+    struct FieldIndexImpl<I, M, T, HasType< typename T<I,M>::Exist >>
     {
         static constexpr size_t Index = 1 + FieldIndexImpl<I + 1, M, T>::Index;
     };

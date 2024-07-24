@@ -249,6 +249,19 @@ inline ArxBasicSerializer& operator << (ArxBasicSerializer& Ser, TArray<T>& Arra
 template<class Key, class Value>
 inline ArxBasicSerializer& operator << (ArxBasicSerializer& Ser, TSortedMap<Key,Value>& Map)
 {
+#if ARX_DEBUG_SNAPSHOT 
+    if (Ser.GetTypeName() == ArxDebugSerializer::TypeName)
+    {
+        FString Str = TEXT(" {\n");
+        for (auto& Item : Map)
+        {
+            Str += FString::Printf(TEXT("%s = %s\n"), *LexToString(Item.Key), *LexToString(Item.Value));
+            Ser << Str;
+        }
+        Str += TEXT("\n}\n");
+    }
+    else
+#endif
     if (Ser.IsSaving())
     {
         int Count = Map.Num();
@@ -301,8 +314,9 @@ inline void SerializeMember(ArxBasicSerializer& Ser, T& Val, const TCHAR* Name)
 #if ARX_DEBUG_SNAPSHOT
     if (Ser.GetTypeName() == ArxDebugSerializer::TypeName)
     {
-        FString Ret = FString::Printf(TEXT("%s = %s\n"), Name, *LexToString(Val));
+        FString Ret = FString::Printf(TEXT("\n%s = "), Name);
         Ser << Ret;
+        Ser << Val;
     }
     else
 #endif

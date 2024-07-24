@@ -2,6 +2,7 @@
 
 #include "ArxCommon.h"
 #include "ArxSystem.h"
+#include "ArxWorld.h"
 
 class ARXRUNTIME_API ArxCommandSystem: public ArxSystem, public ArxEntityRegister<ArxCommandSystem>
 {
@@ -97,10 +98,10 @@ const FName ArxCommand<T>::TypeName = ArxCommand<T>::Register();
 #define EXPOSED_ENTITY_METHOD(Name, ...)\
     template<class ... Args> struct Name##_Command: public ArxCommand<Name##_Command<Args ...>>{\
         std::tuple<Args...> Members;\
-        template<class ... ParameterType> friend void __##Name##Serialize_Internal(ArxSerializer& Ser,ParameterType& ... Params){\
+        template<class ... ParameterType> static void __##Name##Serialize_Internal(ArxSerializer& Ser,ParameterType& ... Params){\
             int a[] = {(Ser << Params,0) ...};\
         }\
-        friend void __##Name##Serialize_Internal(ArxSerializer& Ser) {}\
+        static void __##Name##Serialize_Internal(ArxSerializer& Ser) {}\
         template<class Tuple,std::size_t ... Index> void Serialize(Tuple& InTuple, ArxSerializer& Ser,std::index_sequence<Index...>const) const{\
             __##Name##Serialize_Internal(Ser, std::get<Index>(InTuple) ...); \
         }\

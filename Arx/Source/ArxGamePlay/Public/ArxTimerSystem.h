@@ -27,7 +27,7 @@ private:
         inline bool IsRepeated() const { return Interval > 0; }
         inline bool IsInfinity() const { return End == 0; }
 
-        friend static ArxSerializer& operator << (ArxSerializer& Ser, FTimer& Timer)
+        friend inline ArxSerializer& operator << (ArxSerializer& Ser, FTimer& Timer)
         {
             Ser << Timer.Interval;
             Ser << Timer.End;

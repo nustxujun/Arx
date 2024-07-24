@@ -311,7 +311,7 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 		auto H = FrameHeight + 1;
 
 		DrawLinesLocal({ {X, Y}, {X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y } }, FLinearColor::White, 2, HighlightLayerId);
-	} while (0);
+	} ;
 
 
 
