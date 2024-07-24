@@ -256,9 +256,10 @@ inline ArxBasicSerializer& operator << (ArxBasicSerializer& Ser, TSortedMap<Key,
         for (auto& Item : Map)
         {
             Str += FString::Printf(TEXT("%s = %s\n"), *LexToString(Item.Key), *LexToString(Item.Value));
-            Ser << Str;
         }
-        Str += TEXT("\n}\n");
+        Str += TEXT("}\n");
+
+        Ser << Str;
     }
     else
 #endif

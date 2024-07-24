@@ -35,7 +35,7 @@ inline uint64 ArxTypeId()
 #include <string>
 
 
-template<class T>
+template<class Type>
 static FName ArxTypeName()
 {
     const static FName TypeName = [
@@ -46,12 +46,18 @@ static FName ArxTypeName()
 #endif 
     ]() ->FName
     {
-        const std::regex Pattern("<(class|struct) .+>");
+#if defined(_MSC_VER) && !defined(__clang__)
+        const std::regex Pattern("ArxTypeName<(class|struct) (.+)>");
+#else
+        const std::regex Pattern("\\[(Type =) (.+)\\]");
+#endif
         std::smatch Result;
         auto bMatched = std::regex_search(FuncName, Result,Pattern);
         
         check(bMatched);
-        return Result[0].str().c_str();
+        auto Name = Result[2].str();
+        Name = "[" + Name + "]";
+        return Name.c_str();
     }();
 
     return TypeName;
