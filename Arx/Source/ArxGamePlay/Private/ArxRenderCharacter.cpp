@@ -133,7 +133,7 @@ void AArxRenderCharacter::MoveForward(float Value)
 
 void AArxRenderCharacter::MoveRight(float Value)
 {
-	if ((Controller != nullptr) && (Value != 0.0f))
+	if ((Controller != nullptr))
 	{
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();

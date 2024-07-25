@@ -99,7 +99,8 @@ static void DrawLines(const FGeometry& Geometry, int LayerId, FSlateWindowElemen
 int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const bool bEnabled = ShouldBeEnabled(bParentEnabled);
-	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	//const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const auto DrawEffects = ESlateDrawEffect::NoPixelSnapping;
 	auto Brush = FSlateColorBrush(FLinearColor::White);
 	FSlateFontInfo SummaryFont = FCoreStyle::GetDefaultFontStyle("Regular", 8);
 
@@ -249,13 +250,13 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 				if (bThin)
 					continue;
 
-				X += 1;
-				auto Y = TrackY + 1;
+				//X += 1;
+				auto Y = TrackY ;
 
 				auto W = RealFrameWidth;
 				auto H = FrameHeight ;
 
-				DrawLinesLocal({ {X, Y}, {X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y - 1} }, BorderColor, 1, LineLayerId);
+				DrawLinesLocal({ {X, Y}, {X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y } }, BorderColor, 1, LineLayerId);
 			}
 
 			Index++;
@@ -324,7 +325,7 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 		float Y = HintBeginY;
 		float H = HintHeight;
 		float W = FMath::Max(0, MaxFrame - MinFrame + 1) * HintMapping;
-		DrawLinesLocal({ {X, Y},{X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y -1} }, FLinearColor::White, 1, HighlightLayerId);
+		DrawLinesLocal({ {X, Y},{X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y } }, FLinearColor::White, 1, HighlightLayerId);
 
 	}
 
