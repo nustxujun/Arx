@@ -6,7 +6,8 @@
 
 void UArxRenderableSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-    StepHandle = ArxDelegates::OnClientWorldStep.AddUObject(this, &UArxRenderableSubsystem::OnFrame);
+    if (IsInGame())
+        StepHandle = ArxDelegates::OnClientWorldStep.AddUObject(this, &UArxRenderableSubsystem::OnFrame);
 }
 
 void UArxRenderableSubsystem::Deinitialize() 
@@ -19,8 +20,18 @@ UArxRenderableSubsystem& UArxRenderableSubsystem::Get(UWorld* World)
     return *World->GetSubsystem<UArxRenderableSubsystem>();
 }
 
+bool UArxRenderableSubsystem::IsInGame()const
+{
+    auto Type = GetWorld()->WorldType;
+    return Type == EWorldType::Game || Type == EWorldType::PIE;
+}
+
 void UArxRenderableSubsystem::Link(ArxEntity* Entity, TSubclassOf<AActor> ActorClass)
 {
+    if (!IsInGame())
+        return;
+
+    check(Entity->GetWorld().GetUnrealWorld() == GetWorld())
     check( ActorClass->IsChildOf<AActor>() );
     check(ActorClass->ImplementsInterface(UArxRenderable::StaticClass()))
     auto Actor = GetActor(Entity);
@@ -50,6 +61,9 @@ void UArxRenderableSubsystem::Link(ArxEntity* Entity, TSubclassOf<AActor> ActorC
 
 void UArxRenderableSubsystem::Unlink(ArxEntity* Entity)
 {
+    if (!IsInGame())
+        return;
+
     auto Actor = GetActor(Entity);
     if (!Actor)
         return;
@@ -79,3 +93,4 @@ void UArxRenderableSubsystem::OnFrame(ArxWorld* World, ArxPlayerId PId, int Fram
             Cast<IArxRenderable>(Item.Value)->OnFrame(FrameId);
     }
 }
+

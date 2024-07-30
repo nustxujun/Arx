@@ -23,7 +23,7 @@ void ArxCharacter::FContainer::AddReferencedObjects(FReferenceCollector& Collect
 	if (CollisionShape)
 		Collector.AddReferencedObject(CollisionShape);
 }
-#pragma optimize("",off)
+
 void ArxCharacter::Initialize(bool bIsReplicated)
 {
 	FWorldContext* WorldContext = GEngine->GetWorldContextFromGameViewport(GEngine->GameViewport);
@@ -36,7 +36,7 @@ void ArxCharacter::Initialize(bool bIsReplicated)
 	Container.RigidBody = PhysicsSys.CreateRigidBody();
 	auto Collider = Container.RigidBody->AddCollisionShape(Container.CollisionShape);
 	Container.RigidBody->UpdateMassPropertiesFromColliders();
-	Container.RigidBody->SetIsDebugEnabled(true);
+	//Container.RigidBody->SetIsDebugEnabled(true);
 
 
 	auto Pos = FVector(- 290.000000, -180.000000, 454.645386 + GetId() * 200 -300);
@@ -61,7 +61,6 @@ void ArxCharacter::Initialize(bool bIsReplicated)
 
 	}
 }
-#pragma optimize("",on)
 
 void ArxCharacter::Uninitialize(bool bIsReplicated)
 {
@@ -115,36 +114,23 @@ void ArxCharacter::Serialize(ArxSerializer& Serializer)
 }
 
 
-void ArxCharacter::OnEvent(uint64 Type, uint64 Param)
+void ArxCharacter::OnEvent(ArxEntityId Sender, uint64 Type, uint64 Param)
 {
-	switch (Type)
+	if (GetWorld().GetSystem<ArxTimerSystem>().GetId() == Sender && Type == ArxTimerSystem::EVENT_ON_TIMER )
 	{
-	case ArxEntity::ON_TIMER:
 		Update();
-		break;
-	default:
-		break;
 	}
 }
 
 void ArxCharacter::Update()
 {
-	
-	Gravity.z = Container.RigidBody->GetLinearVelocity().z - UE_TO_RP3D(1000);
+	Gravity.z = Container.RigidBody->GetLinearVelocity().z - UE_TO_RP3D(1000) * ArxConstants::TimeStep;
 	Container.RigidBody->SetLinearVelocity(MoveVel + Gravity);
 }
 
 URp3dRigidBody* ArxCharacter::GetRigidBody()
 {
 	return Container.RigidBody;
-}
-
-uint32 ArxCharacter::GetHash()
-{
-	uint32 Hash = GetTypeHash(GetTransform());
-
-
-	return Hash;
 }
 
 const Rp3dTransform& ArxCharacter::GetTransform()

@@ -9,6 +9,7 @@
 #include "EngineUtils.h" 
 #include "HAL/PlatformApplicationMisc.h"
 #include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -504,9 +505,18 @@ static const FTableRowStyle* GetStyle(int State)
 	}
 }
 
-void ArxReplayWindow::InitWorld(UPackage* Package )
+void ArxReplayWindow::InitWorld(UWorld* InWorld )
 {
-	DummyWorld = MakeShared<FDummyWorld>(Package);
+	DummyWorld.Reset();
+	DummyWorld = MakeShared<FDummyWorld>(InWorld);
+
+	for (auto& Item : TextViews)
+	{
+		Item.Refresh({});
+		Item.Widget->RequestListRefresh();
+		Item.Snapshot.Reset();
+		Item.Commands.Reset();
+	}
 }
 
 void ArxReplayWindow::Construct(const FArguments&)
@@ -664,10 +674,17 @@ void ArxReplayWindow::Construct(const FArguments&)
 					SNew(SButton)
 					.HAlign(EHorizontalAlignment::HAlign_Center)
 					.ButtonColorAndOpacity_Lambda([this](){
-						if (!DummyWorld || !DummyWorld->Package)
+						if (!DummyWorld )
 							return FLinearColor(1,0.5,0.5);
 						else
-							return FLinearColor(0.5, 1.0, 0.5);
+						{
+							auto PathName = DummyWorld->UnrealWorld->GetOutermost()->GetPathName();
+							auto LevelName = FPaths::GetBaseFilename(PathName);
+							if (LevelName == SelectedLevelName)
+								return FLinearColor(0.5, 1.0, 0.5);
+							else
+								return FLinearColor(1,1,0.5);
+						}
 
 					
 					})
@@ -683,7 +700,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 							ActualWidget
 						];
 
-						ActualWidget->OnSelected = [this, Window](UPackage* Package) {
+						ActualWidget->OnSelected = [this, Window](UWorld* Package) {
 							InitWorld(Package);
 							FSlateApplication::Get().RequestDestroyWindow(Window);
 						};
@@ -693,10 +710,10 @@ void ArxReplayWindow::Construct(const FArguments&)
 						return Reply;
 					}))
 					.Text_Lambda([this]() {
-						if (!DummyWorld || !DummyWorld->Package)
+						if (!DummyWorld )
 							return FText::FromString(TEXT("Select Map"));
 						else
-							return FText::FromString(DummyWorld->Package->GetName());
+							return FText::FromString(DummyWorld->UnrealWorld->GetName());
 
 					})
 				]
@@ -733,6 +750,8 @@ void ArxReplayWindow::Construct(const FArguments&)
 							//InitWorld();
 							if (!DummyWorld)
 								InitWorld();
+
+							SelectedLevelName = Item->LevelName;
 							SimulationTrack.Reset();
 							TrackWidget->Reset();
 							TrackWidget->AddTrack(TEXT("Commands"), Item->Commands, false);
@@ -920,6 +939,8 @@ void ArxReplayWindow::SetContent(const FString& ParentPath)
 {
 	SimulationTrack.Reset();
 	TrackWidget->Reset();
+
+
 	auto& FileMgr = IFileManager::Get();
 	LevelTrackSource.Reset();
 	FileMgr.IterateDirectory(*ParentPath, [&](auto Name, bool bDir) {
@@ -1061,12 +1082,18 @@ void ArxReplayWindow::SetContent(const FString& ParentPath)
 
 
 
-ArxReplayWindow::FDummyWorld::FDummyWorld(UPackage* InPackage)
+ArxReplayWindow::FDummyWorld::FDummyWorld(UWorld* InWorld)
 {
-	Package = InPackage;
-	if (Package)
+	Reset();
+	if (InWorld)
 	{
-		UnrealWorld = UWorld::FindWorldInPackage(Package);
+		UnrealWorld = InWorld;
+		if (InWorld->WorldType == EWorldType::Inactive)
+		{
+			UnrealWorld->WorldType = EWorldType::Editor;
+			UnrealWorld->ClearWorldComponents();
+			UnrealWorld->InitializeSubsystems();
+		}
 	}
 	else
 	{
@@ -1075,15 +1102,27 @@ ArxReplayWindow::FDummyWorld::FDummyWorld(UPackage* InPackage)
 		if (CurWorld->WorldType == EWorldType::Game)
 			UnrealWorld = CurWorld;
 		else
-			UnrealWorld = UWorld::CreateWorld(EWorldType::Editor, false, TEXT("ArxDummyWorld"));
+			UnrealWorld = UWorld::CreateWorld(EWorldType::Editor, false, TEXT("ArxDummyWorld"), GetTransientPackage(),false);
+
 	}
 	check(UnrealWorld);
 	World = MakeShared<ArxWorld>(UnrealWorld);
 }
 
+void ArxReplayWindow::FDummyWorld::Reset()
+{
+	World.Reset();
+	if (UnrealWorld)
+	{
+		if (UnrealWorld->GetOuter() == GetTransientPackage())
+			UnrealWorld->DestroyWorld(false);
+		UnrealWorld = nullptr;
+	}
+}
+
 ArxReplayWindow::FDummyWorld::~FDummyWorld()
 {
-
+	Reset();
 }
 
 void ArxReplayWindow::FDummyWorld::Serialize(ArxSerializer& Ser)
@@ -1094,8 +1133,6 @@ void ArxReplayWindow::FDummyWorld::Serialize(ArxSerializer& Ser)
 void ArxReplayWindow::FDummyWorld::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	Collector.AddReferencedObject(UnrealWorld);
-	Collector.AddReferencedObject(Package);
-	
 }
 
 
@@ -1173,29 +1210,20 @@ FReply ArxReplayOpenAssetDialog::OnPreviewKeyDown(const FGeometry& MyGeometry, c
 
 void ArxReplayOpenAssetDialog::OnAssetSelectedFromPicker(const FAssetData& AssetData)
 {
-	
-	auto Package = ::FindPackage(nullptr, *AssetData.PackageName.ToString());
-	if (!Package)
-	{
-		Package = LoadPackage(nullptr, *AssetData.PackageName.ToString(), LOAD_None);
-	}
-	check(Package);
+	auto World = Cast<UWorld>(AssetData.GetAsset());
+	check(World);
 	if (OnSelected)
-		OnSelected(Package);
+		OnSelected(World);
 }
 
 void ArxReplayOpenAssetDialog::OnPressedEnterOnAssetsInPicker(const TArray<FAssetData>& SelectedAssets)
 {
 	for (auto& AssetData: SelectedAssets)
 	{
-		auto Package = ::FindPackage(nullptr, *AssetData.PackageName.ToString());
-		if (!Package)
-		{
-			Package = LoadPackage(nullptr, *AssetData.PackageName.ToString(), LOAD_None);
-		}
-		check(Package);
+		auto World = Cast<UWorld>(AssetData.GetAsset());
+		check(World);
 		if (OnSelected)
-			OnSelected(Package);
+			OnSelected(World);
 
 		return;
 	}

@@ -16,7 +16,6 @@ ArxClientPlayer::ArxClientPlayer(UWorld* InWorld, int InVerificationCycle):World
 void ArxClientPlayer::ResponseCommand(int FrameId, const TArray<uint8>& Command)
 {
 	Commands.Set(FrameId,  Command);
-	OnReceiveCommand(FrameId,  Command);
 }
 
 void ArxClientPlayer::ResponseRegister(ArxPlayerId Id)
@@ -118,7 +117,6 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 		}
 
 		World.Update();
-		OnFrame();
 
 		ArxDelegates::OnClientWorldStep.Broadcast(&World, GetPlayerId(), CurrentFrame);
 
@@ -179,11 +177,6 @@ void ArxServerPlayer::SendCommand(int FrameId, const TArray<uint8>& Command)
 	Server->AddCommands(PlayerId, FrameId, Command);
 }
 
-void ArxServerPlayer::SendHash(int FrameId, uint32 HashValue)
-{
-	if (!FrameHashValues.Has(FrameId)) 
-		FrameHashValues.Set(FrameId, HashValue);
-}
 
 void ArxServerPlayer::RequestCommand(int FrameId)
 {

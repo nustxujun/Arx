@@ -12,6 +12,12 @@ class ARXRUNTIME_API ArxBlackboard: public ArxSystem, public ArxEntityRegister<A
 {
     GENERATED_ARX_ENTITY_BODY()
 public:
+    enum
+    {
+        EVENT_ON_BLACKBOARD_VALUE_CHANGED
+    };
+
+
     ArxBlackboard(ArxWorld& InWorld, ArxEntityId Id);
 
     void Initialize(bool bIsReplicated ) override;
@@ -154,7 +160,7 @@ private:
             for (auto EntId : *List)
             {
                 auto Ent = World.GetEntity(EntId);
-                Ent->OnEvent(ArxEntity::ON_BLACKBOARD_VALUE_CHANGED, Id);
+                Ent->OnEvent(GetId(), ArxEntity::EVENT_ON_BLACKBOARD_VALUE_CHANGED, Id);
             }
         }
     }

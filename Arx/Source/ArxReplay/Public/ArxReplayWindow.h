@@ -115,7 +115,7 @@ protected:
 	void OnPressedEnterOnAssetsInPicker(const TArray<struct FAssetData>& SelectedAssets);
 
 public:
-    TFunction<void(UPackage*)> OnSelected;
+    TFunction<void(UWorld*)> OnSelected;
 };
 
 
@@ -133,7 +133,7 @@ public:
 
     void SetContent(const FString& ParentPath);
  
-    void InitWorld(UPackage* Package = nullptr);
+    void InitWorld(UWorld* InWorld = nullptr);
 private:
     using FileItem = TSharedPtr<FString>;
     TSharedPtr<SListView<FileItem>> FileList;
@@ -170,9 +170,8 @@ private:
     struct FDummyWorld : public FGCObject
     {
         UWorld* UnrealWorld = nullptr;
-        UPackage* Package = nullptr;
         TSharedPtr<ArxWorld> World ;
-        FDummyWorld(UPackage* Package);
+        FDummyWorld(UWorld* InWorld);
         ~FDummyWorld();
 
         void AddReferencedObjects(FReferenceCollector& Collector) override;
@@ -181,10 +180,11 @@ private:
             return "DummyWorld";
         }
 
-
+        void Reset();
         void Serialize(ArxSerializer& Ser);
     };
     TSharedPtr<FDummyWorld> DummyWorld;
+    FString SelectedLevelName;
 
     struct FTextView
     {

@@ -10,7 +10,6 @@ public:
     virtual ~ArxPlayerChannel() = default;
 
     virtual void SendCommand(int FrameId, const TArray<uint8>& Command) = 0;
-    virtual void SendHash(int FrameId, uint32 HashValue) = 0;
     virtual void SendSnapshot(int FrameId, const TArray<uint8>& Snapshot) = 0;
     virtual void RequestCommand(int FrameId) = 0;
     virtual void RequestRegister() = 0;
@@ -45,9 +44,7 @@ public:
     void SyncStart()override final;
 
     virtual void Update();
-    virtual void OnFrame() = 0;
     virtual void OnRegister(ArxWorld& World) = 0;
-    virtual void OnReceiveCommand(int FrameId,  const TArray<uint8>& Data) = 0;
     virtual void CreateSnapshot(TArray<uint8>& Data) ;
 
     int GetCurrentFrameId(){return CurrentFrame;}
@@ -81,7 +78,6 @@ public:
 
     void SendSnapshot(int FrameId, const TArray<uint8>& Snapshot) override final;
     void SendCommand(int FrameId, const TArray<uint8>& Command) override final;
-    void SendHash(int FrameId, uint32 HashValue) override final;
     void RequestCommand(int FrameId) override final;
     void RequestRegister() override final;
     void RequestUnregister() override final;

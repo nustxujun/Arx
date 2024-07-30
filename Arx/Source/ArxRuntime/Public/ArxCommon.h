@@ -93,3 +93,94 @@ private:
     TMap<Key, Value> Fwd;
     TMap<Value, Key> Bwd;
 };
+
+template<class T, bool UniqueValue = false, class Pred = TLess<T>>
+class TOrderedArray
+{
+public:
+    int Insert(T Value)
+    {
+        int Index = LowerBound(Value);
+        if (UniqueValue && Index < Array.Num() && Array[Index] == Value)
+        {
+            return Index;
+        }
+        
+        Array.Insert(MoveTemp(Value), Index);
+        return Index;
+    }
+
+    void Remove(const T& Value, bool bShrinking = false)
+    {
+        if (UniqueValue)
+        {
+            auto Index = LowerBound(Value);
+            if (Index < Array.Num())
+            {
+                Array.RemoveAt(Index,1, bShrinking);
+            }
+        }
+        else
+        {
+            auto Begin = LowerBound(Value);
+            auto End = UpperBound(Value);
+            auto Count = End - Begin;
+            if (Count > 0)
+                Array.RemoveAt(Begin, Count, bShrinking);
+        }
+
+    }
+
+    int LowerBound(const T& Val)
+    {
+       return Algo::LowerBoundBy(Array, Val, FIdentityFunctor(), Pred());
+    }
+
+    int UpperBound(const T& Val)
+    {
+        return Algo::UpperBoundBy(Array, Val, FIdentityFunctor(), Pred());
+    }
+
+    int Find(const T& Val)
+    {
+        return Algo::BinarySearchBy(Array, Val, FIdentityFunctor(), Pred());
+    }
+
+    T& operator[](int Index)
+    {
+        return Array[Index];
+    }
+
+
+    TArray<T>& GetArray()
+    {
+        return Array;
+    }
+
+    const TArray<T>& GetArray() const
+    {
+        return Array;
+    }
+private:
+    TArray<T> Array;
+};
+
+template<class T, bool UniqueValue = false, class Pred = TLess<T>>
+inline ArxBasicSerializer& operator << (ArxBasicSerializer& Ser, TOrderedArray<T, UniqueValue, Pred>& Array)
+{
+    Ser << Array.GetArray();
+    return Ser;
+}
+
+
+template<class T, bool UniqueValue = false, class Pred = TLess<T>>
+inline FString LexToString(const TOrderedArray<T, UniqueValue, Pred>& Array)
+{
+    FString Content;
+    for (auto& Item : Array.GetArray())
+    {
+        Content += FString::Printf(TEXT("\t%s,\n"), *LexToString(Item));
+    }
+
+    return FString::Printf(TEXT("{\n%s\n}\n"), *Content);
+}

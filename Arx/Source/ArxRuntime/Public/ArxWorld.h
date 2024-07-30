@@ -1,11 +1,17 @@
 #pragma once 
 #include "ArxEntity.h"
 #include "ArxSystem.h"
+#include "ArxServerEvent.h"
 
 class ARXRUNTIME_API ArxWorld: public ArxEntity
 {
     friend class ArxEntity;
-
+public:
+    enum
+    {
+        PlayerEnter,
+        PlayerLeave,
+    };
 public:
     ArxWorld(class UWorld* InWorld);
     ~ArxWorld();
@@ -61,7 +67,6 @@ public:
 
 
     void Serialize(ArxSerializer& Serializer) override;
-    uint32 GetHash() override;
     void Initialize(bool bReplicated) override;
 
     FName GetClassName(){
@@ -70,8 +75,11 @@ public:
     }
 
     inline bool IsDeterministic()const { return bDeterministic; }
+    inline bool IsInitializingOrUninitalizing()const{return bInitializing;}
     void Setup(const TFunction<void(ArxWorld&)>& Callback);
 
+    void RegisterServerEvent(ArxServerEvent::Event Event, ArxEntityId Id);
+    void UnregisterServerEvent(ArxServerEvent::Event Event, ArxEntityId Id);
 private:
     void AddInternalSystem();
     void ClearDeadEntities();
@@ -84,7 +92,7 @@ private:
     TArray<ArxEntityId> DeadList;
     ArxEntityId UniqueId = 1;
     bool bDeterministic = false;
-
+    bool bInitializing = false;
 public:
 
 };

@@ -23,6 +23,10 @@ public:
 
     void OnFrame(ArxWorld* World,ArxPlayerId PId, int FrameId);
 
+    virtual bool DoesSupportWorldType(EWorldType::Type WorldType) const{return true;}
+
+private:
+    bool IsInGame()const;
 private:
     TMap<ArxEntityId, TWeakObjectPtr<AActor>> Actors;
     FDelegateHandle StepHandle;

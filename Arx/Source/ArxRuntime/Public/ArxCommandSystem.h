@@ -115,7 +115,7 @@ const FName ArxCommand<T>::TypeName = ArxCommand<T>::Register();
             Execute(CurEnt, PId, std::get<Index>(InTuple) ...); \
         }\
         void Execute(ArxEntity& Ent, ArxPlayerId PId){\
-            check(Ent.GetClassName() == Self::GetTypeName())\
+            ensure(Ent.GetClassName() == Self::GetTypeName());\
             auto& CurEnt = static_cast<Self&>(Ent);\
             Execute(Members, CurEnt, PId, std::make_index_sequence < std::tuple_size<decltype(Members)>{} > {});\
         }\

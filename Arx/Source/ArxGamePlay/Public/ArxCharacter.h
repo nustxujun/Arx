@@ -4,6 +4,7 @@
 #include "ArxEntity.h"
 #include "ArxCommandSystem.h"
 #include "Rp3dCommon.h"
+#include "ArxEvent.h"
 
 class ARXGAMEPLAY_API ArxCharacter : public ArxEntity, public ArxEntityRegister<ArxCharacter>
 {
@@ -16,8 +17,7 @@ public:
 	void Serialize(ArxSerializer& Serializer) override;
 	void Spawn()override;
 
-	void OnEvent(uint64 Type, uint64 Param) override;
-	uint32 GetHash() override;
+	void OnEvent(ArxEntityId Sender, uint64 Type, uint64 Param) override;
 	void Update();
 	
 	const Rp3dTransform& GetTransform();

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "ArxCommon.h"
 #include "ArxRandomArray.h"
+#include "ArxServerEvent.h"
 #include "ArxServerSubsystem.generated.h"
 
 class ArxServerPlayer;
@@ -37,6 +38,7 @@ public:
     void UnregisterPlayer(ArxPlayerId id);
 private:
     void VerifyFrames();
+    void AddServerCommand(ArxServerEvent::Event Event, ArxPlayerId PId);
 private:
     TArray<TArray<uint8>> Frames ;
     TRandomArray<TArray<uint8>> VerifiedSnapshots;

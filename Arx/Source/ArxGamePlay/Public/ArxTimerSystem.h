@@ -2,6 +2,7 @@
 
 #include "ArxGamePlayCommon.h"
 #include "ArxSystem.h"
+#include "ArxEvent.h"
 
 #define INVALID_TIMER 0
 
@@ -9,6 +10,12 @@ class ARXGAMEPLAY_API ArxTimerSystem: public ArxSystem, public ArxEntityRegister
 {
     GENERATED_ARX_ENTITY_BODY()
 public:
+    
+    enum Event
+    {
+        EVENT_ON_TIMER
+    };
+
     using ArxSystem::ArxSystem;
     virtual void Update() override;
 

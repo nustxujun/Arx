@@ -1,6 +1,7 @@
 #include "ArxWorld.h"
 #include "ArxCommandSystem.h"
 #include "ArxBlackboard.h"
+#include "ArxEvent.h"
 
 #include "CoreMinimal.h"
 
@@ -12,7 +13,7 @@ struct ScopedBoolean
 	~ScopedBoolean() { Value = OldValue; }
 };
 
-#define SCOPED_DETER() ScopedBoolean __SB(bDeterministic)
+#define SCOPED_BOOLEAN(BOOLVAL) ScopedBoolean __SB(BOOLVAL)
 
 
 ArxWorld::ArxWorld(UWorld* InWorld)
@@ -23,9 +24,12 @@ ArxWorld::ArxWorld(UWorld* InWorld)
 
 ArxWorld::~ArxWorld()
 {
-	for (auto Ent : Entities)
 	{
-		Ent->Uninitialize();
+		SCOPED_BOOLEAN(bInitializing);
+		for (auto Ent : Entities)
+		{
+			Ent->Uninitialize();
+		}
 	}
 
 	for (auto Ent : Entities)
@@ -36,13 +40,24 @@ ArxWorld::~ArxWorld()
 
 void ArxWorld::Setup(const TFunction<void(ArxWorld&)>& Callback)
 {
-	SCOPED_DETER();
+	SCOPED_BOOLEAN(bDeterministic);
 	AddInternalSystem();
 	Callback(*this);
 }
 
+void ArxWorld::RegisterServerEvent(ArxServerEvent::Event Event, ArxEntityId Id)
+{
+	GetSystem<ArxEventSystem>().RegisterEvent(0,Event,Id);
+}
+
+void ArxWorld::UnregisterServerEvent(ArxServerEvent::Event Event, ArxEntityId Id)
+{
+	GetSystem<ArxEventSystem>().UnregisterEvent(0, Event, Id);
+}
+
 void ArxWorld::AddInternalSystem()
 {
+	AddSystem<ArxEventSystem>();
 	AddSystem<ArxCommandSystem>();
 	AddSystem<ArxBlackboard>();
 }
@@ -58,6 +73,8 @@ ArxEntity* ArxWorld::CreateEntity(ArxPlayerId PId , FName TypeName)
 	auto Ent = (*Fac)(*this, Id);
 	Ent->SetPlayerId(PId);
 	IdMap.Add(Id, Entities.Add(Ent));
+
+	SCOPED_BOOLEAN(bInitializing);
 	Ent->Initialize(false);
 
 	return Ent;
@@ -78,7 +95,7 @@ bool ArxWorld::IsEntityValid(ArxEntityId Id)
 
 void ArxWorld::Update()
 {
-	SCOPED_DETER();
+	SCOPED_BOOLEAN(bDeterministic);
 	for (auto Id : Systems)
 	{
 		auto Sys = GetEntity(Id);
@@ -182,10 +199,12 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 
 		auto CreateEnt = [this](ArxEntityId EId, ArxPlayerId PId, FName Class){
 			auto Fac = ArxEntity::GetFactories().Find(Class);
-			check(Fac);
+			checkf(Fac, TEXT("Can not find entity type : %s"), *Class.ToString());
 
 			auto Ent = (*Fac)(*this, EId);
 			Ent->SetPlayerId(PId);
+
+			SCOPED_BOOLEAN(bInitializing);
 			Ent->Initialize(true);
 			return Ent;
 		};
@@ -255,9 +274,12 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 			}
 		}
 
-		for (auto Ent : RemoveList)
 		{
-			Ent->Uninitialize(true);
+			SCOPED_BOOLEAN(bInitializing);
+			for (auto Ent : RemoveList)
+			{
+				Ent->Uninitialize(true);
+			}
 		}
 
 		for (auto Ent : RemoveList)
@@ -280,12 +302,16 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 void ArxWorld::ClearDeadEntities()
 {
 	TArray<ArxEntity*> EntList;
-	for (auto Id : DeadList)
 	{
-		auto Ent = GetEntity(Id);
+		SCOPED_BOOLEAN(bInitializing);
 
-		Ent->Uninitialize();
-		EntList.Add(Ent);
+		for (auto Id : DeadList)
+		{
+			auto Ent = GetEntity(Id);
+
+			Ent->Uninitialize();
+			EntList.Add(Ent);
+		}
 	}
 	DeadList.Reset();
 
@@ -297,18 +323,10 @@ void ArxWorld::ClearDeadEntities()
 	}
 }
 
-uint32 ArxWorld::GetHash()
-{
-	uint32 HashValue = 0;
-	for (auto Ent: Entities)
-	{
-		HashValue = HashCombine(HashValue, Ent->GetHash());
-	}
-	return HashValue;
-}
 
 void ArxWorld::Initialize(bool bReplicated)
 {
+	SCOPED_BOOLEAN(bInitializing);
 	for (auto Ent : Entities)
 	{
 		Ent->Initialize(bReplicated);

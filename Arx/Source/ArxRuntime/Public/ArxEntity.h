@@ -8,11 +8,6 @@ class ARXRUNTIME_API ArxEntity
 {
     friend class ArxWorld;
 public:
-    enum EventType
-    {
-        ON_TIMER,
-        ON_BLACKBOARD_VALUE_CHANGED,
-    };
 
 
 public:
@@ -23,16 +18,13 @@ public:
 
 
     ArxWorld& GetWorld();
-    ArxEntityId GetId() const {return EntityId;}
-    ArxPlayerId GetPlayerId()const{return PlayerId;}
+    inline ArxEntityId GetId() const {return EntityId;}
+    inline ArxPlayerId GetPlayerId()const{return PlayerId;}
 
     virtual FName GetClassName() = 0;
     virtual void Serialize(ArxSerializer& Serializer)  {};
-    virtual void Initialize(bool bIsReplicated = false) {};
-    virtual void Uninitialize(bool bIsReplicated = false){};
-    virtual void Spawn() {};
-    virtual void OnEvent(uint64 Type, uint64 Param){};
-    virtual uint32 GetHash(){return 0;}
+
+    virtual void OnEvent(ArxEntityId Id, uint64 Event, uint64 Param){};
 
     static TMap<FName, TFunction<ArxEntity* (ArxWorld&, ArxEntityId)>>& GetFactories()
     {
@@ -41,6 +33,11 @@ public:
     }
 
     static void AddFactory(FName Name, TFunction<ArxEntity* (ArxWorld&, ArxEntityId)> Factory);
+
+protected:
+    virtual void Initialize(bool bIsReplicated = false) {};
+    virtual void Uninitialize(bool bIsReplicated = false) {};
+    virtual void Spawn() {};
 
 private:
     void SetPlayerId(ArxPlayerId Id) {PlayerId = Id;} // called by world only

@@ -156,6 +156,19 @@ void UArxServerSubsystem::VerifyFrames()
 	}
 }
 
+void UArxServerSubsystem::AddServerCommand(ArxServerEvent::Event Event, ArxPlayerId PId)
+{
+	ArxServerCommand Cmd;
+	Cmd.Event = Event;
+	Cmd.PlayerId = PId;
+	TArray<uint8> Data;
+	ArxWriter Ser(Data);
+	int Count = 1;
+	Ser << Count;
+	Cmd.Serialize(Ser);
+	AddCommands(NON_PLAYER_CONTROL, CurrentFrame,Data);
+}
+
 void UArxServerSubsystem::Update()
 {
 	auto& Data = Frames[CurrentFrame];
@@ -202,11 +215,16 @@ ArxPlayerId UArxServerSubsystem::RegisterPlayer(ArxServerPlayer* Player)
 {
 	auto Id = UniquePlayerId++;
 	Players.Add(Id, Player);
+
+
+	AddServerCommand(ArxServerEvent::PLAYER_ENTER, Id);
 	return Id;
 }
 
 void UArxServerSubsystem::UnregisterPlayer(ArxPlayerId Id)
 {
+	AddServerCommand(ArxServerEvent::PLAYER_LEAVE, Id);
+
 	Players.Remove(Id);
 }
 

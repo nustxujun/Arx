@@ -1,11 +1,12 @@
 #include "ArxCommandSystem.h"
 #include "ArxWorld.h"
-
     
 TMap<FName, uint32> ArxCommandSystem::IndexOfCommands;
 TArray<TFunction<TFunction<void(ArxEntity&, ArxPlayerId)>(ArxSerializer&)>> ArxCommandSystem::Executers;
 TArray<TFunction<void(ArxSerializer&)>> ArxCommandSystem::SerializersForDebug;
 
+
+static constexpr int ReservedCommandCount = 1;
 void ArxCommandSystem::Initialize(bool bReplicated)
 {
     TArray<FName> Commands;
@@ -22,7 +23,7 @@ void ArxCommandSystem::Initialize(bool bReplicated)
 
     for (int i = 0; i < Commands.Num(); ++i)
     {
-        CommandMap.Add(Commands[i],i);
+        CommandMap.Add(Commands[i],i + ReservedCommandCount);
     }
 }
 
@@ -41,23 +42,43 @@ void ArxCommandSystem::Update()
         Serializer << PlyId;
         Serializer << Num;
 
-        for (int j = 0; j < Num; ++j)
+        if (PlyId == NON_PLAYER_CONTROL)
         {
-            ArxEntityId EntId;
-            int CmdIdx;
-            Serializer << EntId;
-            Serializer << CmdIdx;
+            for (int j = 0; j < Num; ++j)
+            {
+                ArxServerCommand Cmd;
+                Cmd.Serialize(Serializer);
+                FuncList.Add([this, Cmd = MoveTemp(Cmd)]() {
+                    Cmd.Execute(GetWorld());
+                });
+            }
+        }
+        else
+        {
+            for (int j = 0; j < Num; ++j)
+            {
+                ArxEntityId EntId;
+                int CmdIdx;
+                Serializer << EntId;
+                Serializer << CmdIdx;
 
-            auto Name = CommandMap.FindBackward(CmdIdx);
-            check(Name);
-            uint32 ExtIdx = IndexOfCommands[*Name];
+            
+                auto Name = CommandMap.FindBackward(CmdIdx);
+                check(Name);
+                uint32 ExtIdx = IndexOfCommands[*Name];
 
-            check(Executers.IsValidIndex(ExtIdx));
+                check(Executers.IsValidIndex(ExtIdx));
 
-            FuncList.Add([this, EntId, PlyId, Func = Executers[ExtIdx](Serializer)]() {
-                auto Ent = GetWorld().GetEntity(EntId);
-                Func(*Ent, PlyId);
-            });
+                FuncList.Add([this, EntId, PId = PlyId, Func = Executers[ExtIdx](Serializer)]() {
+                    auto& Ent = *GetWorld().GetEntity(EntId);
+                    checkf(Ent.GetPlayerId() == PId, 
+                        TEXT("can not command an entity(type:%s ,id: %d, pid:%d) owned by other player(pid: %d)"), *Ent.GetClassName().ToString(), Ent.GetId(), Ent.GetPlayerId(), PId);
+                    if (Ent.GetPlayerId() != PId) 
+                        return; 
+                    Func(Ent, PId);
+                });
+            
+            }
         }
     }
 
@@ -97,28 +118,46 @@ FString ArxCommandSystem::DumpCommands(const TArray<uint8>& Commands)
 
         Content += FString::Printf(TEXT("\n[ playerid: %d, count: %d ]\n"), PlyId, Num);
 
-        for (int j = 0; j < Num; ++j)
+        if (PlyId == NON_PLAYER_CONTROL)
         {
-            ArxEntityId EntId;
-            int CmdIdx;
-            Serializer << EntId;
-            Serializer << CmdIdx;
+            for (int j = 0; j < Num; ++j)
+            {
+                //ArxEntityId EntId;
+                //int CmdIdx;
+                //Serializer << EntId;
+                //Serializer << CmdIdx;
 
-            auto Name = CommandMap.FindBackward(CmdIdx);
-            check(Name);
-            uint32 ExtIdx = IndexOfCommands[*Name];
+                ArxServerCommand Cmd;
+                Cmd.Serialize(Serializer);
 
-            check(Executers.IsValidIndex(ExtIdx));
+                Content += FString::Printf(TEXT("\n[server command]\nEvent: %d, PlayerId: %d\n"), Cmd.Event, Cmd.PlayerId);
+            }
+        }
+        else
+        {
+            for (int j = 0; j < Num; ++j)
+            {
+                ArxEntityId EntId;
+                int CmdIdx;
+                Serializer << EntId;
+                Serializer << CmdIdx;
 
-            SerializersForDebug[ExtIdx](Serializer);
+                auto Name = CommandMap.FindBackward(CmdIdx);
+                check(Name);
+                uint32 ExtIdx = IndexOfCommands[*Name];
 
-            TArray<uint8> CmdData;
-            ArxDebugSerializer Writer(CmdData);
-            SerializersForDebug[ExtIdx](Writer);
+                check(Executers.IsValidIndex(ExtIdx));
+
+                SerializersForDebug[ExtIdx](Serializer);
+
+                TArray<uint8> CmdData;
+                ArxDebugSerializer Writer(CmdData);
+                SerializersForDebug[ExtIdx](Writer);
 
 
-            Content += FString::Printf(TEXT("\n[ %s ]\nEntId: %d\n"), *Name->ToString(), EntId);
-            Content.AppendChars((TCHAR*)CmdData.GetData(), CmdData.Num() / sizeof(TCHAR));
+                Content += FString::Printf(TEXT("\n[ %s ]\nEntId: %d\n"), *Name->ToString(), EntId);
+                Content.AppendChars((TCHAR*)CmdData.GetData(), CmdData.Num() / sizeof(TCHAR));
+            }
         }
     }
 

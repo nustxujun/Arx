@@ -19,9 +19,12 @@ void UArxSmoothMoveComponent::OnFrame(int Frame, FTransform Trans)
 void UArxSmoothMoveComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	TotalTime += DeltaTime;
 
 	constexpr float Interval = (float)ArxConstants::TimeStep;
+
+	DeltaTime *= FMath::Max(Transforms.Num(), 2) / 2;
+
+	TotalTime += DeltaTime;
 
 	if (Transforms.Num() == 0)
 		return;
