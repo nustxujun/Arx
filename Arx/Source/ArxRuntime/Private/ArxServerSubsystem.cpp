@@ -106,7 +106,7 @@ void UArxServerSubsystem::AddCommands(ArxPlayerId PlayerId, int FrameId, const T
 
 void UArxServerSubsystem::VerifyFrames()
 {
-	const int SampleCount = 1;
+	const int SampleCount = 2;
 
 
 	if (Players.Num() < SampleCount)

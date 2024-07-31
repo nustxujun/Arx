@@ -209,10 +209,8 @@ private:
 
         TArray<TextItem> Source;
         TSharedPtr<SListView<TextItem>> Widget;
-        TArray<uint8> Snapshot;
-        TArray<uint8> Commands;
         int FrameId = 0;
-        uint32 StdHash = 0;
+        ArxPlayerId PlayerId = 0;
 
         void Refresh(const TArray<uint8>& Data);
     }TextViews[2];

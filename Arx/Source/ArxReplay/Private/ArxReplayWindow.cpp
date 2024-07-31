@@ -514,8 +514,6 @@ void ArxReplayWindow::InitWorld(UWorld* InWorld )
 	{
 		Item.Refresh({});
 		Item.Widget->RequestListRefresh();
-		Item.Snapshot.Reset();
-		Item.Commands.Reset();
 	}
 }
 
@@ -547,30 +545,58 @@ void ArxReplayWindow::Construct(const FArguments&)
 	auto MakeStepEvent = [this](int Index){
 		return [this, Index](){
 			auto Reply = FReply::Handled();
-			if (DummyWorld && TextViews[Index].Snapshot.Num() > 0)
+			if (DummyWorld )
 			{
-				ArxReader Reader(TextViews[Index].Snapshot);
-				DummyWorld->Serialize(Reader);
+				int FrameId = TextViews[Index].FrameId;
+				auto PId = TextViews[Index].PlayerId;
 
-				auto& ComSys = DummyWorld->World->GetSystem<ArxCommandSystem>();
-				ComSys.ReceiveCommands(&TextViews[Index].Commands);
-
-				DummyWorld->World->Update();
-
-				auto FrameId = TextViews[Index].FrameId + 1;
-				while (SimulationTrack.Num() <= FrameId)
+				ReplayInfo* Replay = nullptr;
+				for (auto& Item : LevelTrackSource)
 				{
-					SimulationTrack.AddDefaulted();
+					if (Item->LevelName == SelectedLevelName)
+					{
+						Replay = Item.Get();
+					}
 				}
 
-				auto& Data = SimulationTrack[FrameId].Data;
-				Data.Reset();
+				if (!Replay)
+					return Reply;
+				
+				ReplayInfo::PlayerInfo* PlayerInfo = nullptr;
+				for (auto& Item : Replay->PlayerTrackSource)
+				{
+					if (Item.PId == PId)
+					{
+						PlayerInfo = &Item;
+					}
+				}
 
-				ArxWriter Writer(Data);
-				DummyWorld->World->Serialize(Writer);
+				if (!PlayerInfo)
+					return Reply;
 
-				auto Hash = FCrc::MemCrc32(Data.GetData(), Data.Num());
-				SimulationTrack[FrameId].State = (Hash == TextViews[Index].StdHash) ? FReplayFrame::E_NORMAL : FReplayFrame::E_DIFF;
+				SimulationTrack.SetNum(1);
+				SimulationTrack.Reserve(FrameId);
+
+				ArxReader Reader(PlayerInfo->FrameSource[0].Data);
+				DummyWorld->Serialize(Reader);
+
+				for (int i = 0; i < FrameId; ++i)
+				{
+					auto& ComSys = DummyWorld->World->GetSystem<ArxCommandSystem>();
+					if (i < Replay->Commands.Num())
+						ComSys.ReceiveCommands(&Replay->Commands[i].Data);
+
+					DummyWorld->World->Update();
+					
+					auto& Data = SimulationTrack.AddDefaulted_GetRef().Data;
+					ArxWriter Writer(Data);
+					DummyWorld->World->Serialize(Writer);
+
+					auto Hash = FCrc::MemCrc32(Data.GetData(), Data.Num());
+					if (i + 1 < PlayerInfo->FrameSource.Num() && PlayerInfo->FrameSource[i + 1].Data.Num() != 0)
+						SimulationTrack[i + 1].State = (Hash == PlayerInfo->FrameSource[i + 1].Hash) ? FReplayFrame::E_NORMAL : FReplayFrame::E_DIFF;
+				}
+
 			}
 			return Reply;
 		};
@@ -791,7 +817,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 								[
 									SNew(SHorizontalBox)
 									+ SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent(0))]
+									[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeStepEvent(0))]
 									+ SHorizontalBox::Slot().AutoWidth()
 									[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(0))]
 
@@ -800,7 +826,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 								[
 									SNew(SHorizontalBox)
 									+ SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent(1))]
+									[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeStepEvent(1))]
 									+ SHorizontalBox::Slot().AutoWidth()
 									[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(1))]
 								]
@@ -846,6 +872,8 @@ void ArxReplayWindow::Construct(const FArguments&)
 			DebugView << Content;
 			TextViews[Index].Refresh(Data);
 			TextViews[Index].Widget->RequestListRefresh();
+
+			TextViews[Index].FrameId = Frame.FrameId;
 		}
 		else
 		{
@@ -860,27 +888,18 @@ void ArxReplayWindow::Construct(const FArguments&)
 			}
 			TextViews[Index].Refresh(Data);
 
-			TextViews[Index].Snapshot = Frame.Data;
 			TextViews[Index].FrameId = Frame.FrameId;
+			LexFromString(TextViews[Index].PlayerId, *Name);
 
 			auto StdFrame = Getter(Frame.FrameId + 1, [](auto& Name, auto& Frame) {
 				return Name != TEXT("Commands") && Frame.State == FReplayFrame::E_NORMAL;
 			});
 
-			if (StdFrame)
-			{
-				TextViews[Index].StdHash = StdFrame->Hash;
-			}
 
 			auto Cmds = Getter( Frame.FrameId, [](auto& Name, auto& Frame){
 				return Name == TEXT("Commands");
 			});
 
-			if (Cmds)
-				TextViews[Index].Commands = Cmds->Data;
-			else
-				TextViews[Index].Commands.Reset();
-				
 
 			auto ResetItem = [](auto& Item, auto State){
 				if (Item->State == State)
