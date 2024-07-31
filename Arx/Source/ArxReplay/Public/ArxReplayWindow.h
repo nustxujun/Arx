@@ -185,7 +185,7 @@ private:
     };
     TSharedPtr<FDummyWorld> DummyWorld;
     FString SelectedLevelName;
-
+    FString Workspace;
     struct FTextView
     {
         struct FLine

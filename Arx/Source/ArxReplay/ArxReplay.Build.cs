@@ -46,6 +46,7 @@ public class ArxReplay : ModuleRules
 					"UnrealEd",
 					"ToolMenus",
 					"Projects",
+                    "DesktopPlatform"
                 });
         }
 

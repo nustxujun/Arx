@@ -15,7 +15,7 @@
 #include "Editor.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
-
+#include "DesktopPlatformModule.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "ArxReplay"
@@ -519,14 +519,15 @@ void ArxReplayWindow::InitWorld(UWorld* InWorld )
 
 void ArxReplayWindow::Construct(const FArguments&)
 {
-	static const auto Path = FPaths::Combine(FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir()), TEXT("Arx"));
+	static const auto DefaultPath = FPaths::Combine(FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir()), TEXT("Arx"));
+	Workspace = DefaultPath;
 
 	auto RefreshFileList = [this](){
 		auto& FileMgr = IFileManager::Get();
 		FileSource.Reset();
-		if (FPaths::DirectoryExists(Path))
+		if (FPaths::DirectoryExists(Workspace))
 		{
-			FileMgr.IterateDirectory(*Path, [this](auto Name, bool bDir) {
+			FileMgr.IterateDirectory(*Workspace, [this](auto Name, bool bDir) {
 				if (bDir)
 				{
 					auto DirName = FPaths::GetBaseFilename(Name);
@@ -574,13 +575,24 @@ void ArxReplayWindow::Construct(const FArguments&)
 				if (!PlayerInfo)
 					return Reply;
 
-				SimulationTrack.SetNum(1);
+
+
+				int Begin = 0;
+				for (auto& Frame : PlayerInfo->FrameSource)
+				{
+					if (Frame.Data.Num() == 0)
+					{
+						Begin++;
+						continue;
+					}
+					ArxReader Reader(Frame.Data);
+					DummyWorld->Serialize(Reader);
+					break;
+				}
 				SimulationTrack.Reserve(FrameId);
+				SimulationTrack.SetNum(Begin + 1,false);
 
-				ArxReader Reader(PlayerInfo->FrameSource[0].Data);
-				DummyWorld->Serialize(Reader);
-
-				for (int i = 0; i < FrameId; ++i)
+				for (int i = Begin; i < FrameId; ++i)
 				{
 					auto& ComSys = DummyWorld->World->GetSystem<ArxCommandSystem>();
 					if (i < Replay->Commands.Num())
@@ -610,7 +622,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 			{
 				Content += Item->Content + "\n";
 			}
-			
+
 
 			FPlatformApplicationMisc::ClipboardCopy(*Content);
 
@@ -618,7 +630,60 @@ void ArxReplayWindow::Construct(const FArguments&)
 		};
 	};
 
-	
+
+	auto MakeSaveEvent = [this](int Index) {
+		return [this, Index]() {
+			auto Reply = FReply::Handled();
+#if WITH_EDITOR
+			FString FilePath;
+			if (!FDesktopPlatformModule::Get()->OpenDirectoryDialog(nullptr, TEXT("open directory"), DefaultPath, FilePath))
+				return Reply;
+
+			int FrameId = TextViews[Index].FrameId;
+			auto PId = TextViews[Index].PlayerId;
+
+			ReplayInfo* Replay = nullptr;
+			for (auto& Item : LevelTrackSource)
+			{
+				if (Item->LevelName == SelectedLevelName)
+				{
+					Replay = Item.Get();
+				}
+			}
+
+			if (!Replay)
+				return Reply;
+
+			ReplayInfo::PlayerInfo* PlayerInfo = nullptr;
+			for (auto& Item : Replay->PlayerTrackSource)
+			{
+				if (Item.PId == PId)
+				{
+					PlayerInfo = &Item;
+				}
+			}
+
+			if (!PlayerInfo)
+				return Reply;
+
+			auto& FileMgr = IFileManager::Get();
+
+
+			FilePath = FPaths::Combine(FilePath, FString::Printf(TEXT("level_%s_frame_%d_pid_%d"), *SelectedLevelName, FrameId, PId));
+			auto OutputFile = FileMgr.CreateFileWriter(*FilePath, 0);
+			check(OutputFile);
+
+			auto& Data = PlayerInfo->FrameSource[FrameId].Data;
+			OutputFile->Serialize(Data.GetData(), Data.Num());
+			
+			delete OutputFile;
+			UE_LOG(LogCore, Display, TEXT("save current frame to %s"), *FilePath);
+#endif
+			return Reply;
+		};
+	};
+
+
 
 	static auto CustomStyle = FCoreStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row");
 	static auto const CustomBrush = FSlateColorBrush(FLinearColor(0.427, 0.701, 0.003));
@@ -682,6 +747,19 @@ void ArxReplayWindow::Construct(const FArguments&)
 				[
 					// tool bar
 					SNew(SHorizontalBox)
+#if WITH_EDITOR
+					+ SHorizontalBox::Slot().AutoWidth().Padding(2)
+					[
+						SNew(SButton).Text(FText::FromString(TEXT("Open Directory"))).OnClicked(FOnClicked::CreateLambda([this, RefreshFileList]() {
+							auto Reply = FReply::Handled();
+							if (!FDesktopPlatformModule::Get()->OpenDirectoryDialog(nullptr, TEXT("open directory"),DefaultPath,  Workspace))
+								return Reply;
+							RefreshFileList();
+
+							return Reply;
+						}))
+					]
+#endif
 					+ SHorizontalBox::Slot().AutoWidth().Padding(2)
 					[
 						SNew(SButton).Text(FText::FromString(TEXT("Refresh"))).OnClicked(FOnClicked::CreateLambda([this, RefreshFileList](){
@@ -758,7 +836,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 							];
 						})
 						.OnMouseButtonClick_Lambda([this](auto& Item){
-							auto ContentPath = FPaths::Combine(Path, *Item);
+							auto ContentPath = FPaths::Combine(Workspace, *Item);
 							SetContent(ContentPath);
 						})
 					]
@@ -820,6 +898,8 @@ void ArxReplayWindow::Construct(const FArguments&)
 									[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeStepEvent(0))]
 									+ SHorizontalBox::Slot().AutoWidth()
 									[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(0))]
+									+ SHorizontalBox::Slot().AutoWidth()
+									[SNew(SButton).Text(FText::FromString("Save as Binary")).OnClicked_Lambda(MakeSaveEvent(0))]
 
 								]
 								+ SHorizontalBox::Slot()
@@ -829,6 +909,8 @@ void ArxReplayWindow::Construct(const FArguments&)
 									[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeStepEvent(1))]
 									+ SHorizontalBox::Slot().AutoWidth()
 									[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(1))]
+                                    + SHorizontalBox::Slot().AutoWidth()
+									[SNew(SButton).Text(FText::FromString("Save as Binary")).OnClicked_Lambda(MakeSaveEvent(1))]
 								]
 							]
 							+ SVerticalBox::Slot()

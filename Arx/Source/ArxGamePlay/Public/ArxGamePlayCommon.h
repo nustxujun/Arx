@@ -24,7 +24,7 @@ FORCEINLINE ArxSerializer& operator << (ArxSerializer& Ser, f64::fixed64<F>& Val
 template<unsigned int F>
 inline FString LexToString(const f64::fixed64<F>& Value)
 {
-	return FString::Printf(TEXT("%.16lf"), (double)Value);
+	return FString::Printf(TEXT("%.16lf(%x)"), (double)Value, Value.raw_value());
 }
 
 FORCEINLINE uint32 GetTypeHash(const Rp3dVector3& Vector)
@@ -34,7 +34,7 @@ FORCEINLINE uint32 GetTypeHash(const Rp3dVector3& Vector)
 
 inline FString LexToString(const Rp3dVector3& Value)
 {
-	return FString::Printf(TEXT("Vec3{%s, %s, %s}"), *LexToString(RP3D_TO_UE(Value.x)), *LexToString(RP3D_TO_UE(Value.y)), *LexToString(RP3D_TO_UE(Value.z)));
+	return FString::Printf(TEXT("Vec3{%s(%x), %s(%x), %s(%x)}"), *LexToString(RP3D_TO_UE(Value.x)), Value.x.raw_value(), *LexToString(RP3D_TO_UE(Value.y)), Value.y.raw_value(), *LexToString(RP3D_TO_UE(Value.z)), Value.z.raw_value());
 }
 
 FORCEINLINE ArxSerializer& operator << (ArxSerializer& Ser, Rp3dVector3& Vector)
@@ -61,15 +61,23 @@ FORCEINLINE uint32 GetTypeHash(const Rp3dQuat& Quat)
 
 inline FString LexToString(const Rp3dQuat& Value)
 {
-	return FString::Printf(TEXT("Quat{%s, %s, %s, %s}"), *LexToString(Value.x), *LexToString(Value.y), *LexToString(Value.z), *LexToString(Value.w));
+	return FString::Printf(TEXT("Quat{%s(%x), %s(%x), %s(%x), %s(%x)}"), *LexToString(Value.x), Value.x.raw_value(), *LexToString(Value.y), Value.y.raw_value(), *LexToString(Value.z), Value.z.raw_value(), *LexToString(Value.w), Value.w.raw_value());
 }
 
 FORCEINLINE ArxSerializer& operator << (ArxSerializer& Ser, Rp3dQuat& Quat)
 {
-	Ser << Quat.x;
-	Ser << Quat.y;
-	Ser << Quat.z;
-	Ser << Quat.w;
+	if (Ser.GetTypeName() == ArxDebugSerializer::TypeName)
+	{
+		FString Str = LexToString(Quat);
+		Ser << Str;
+	}
+	else
+	{
+		Ser << Quat.x;
+		Ser << Quat.y;
+		Ser << Quat.z;
+		Ser << Quat.w;
+	}
 	return Ser;
 }
 
@@ -86,19 +94,27 @@ inline FString LexToString(const Rp3dTransform& Value)
 
 inline ArxSerializer& operator << (ArxSerializer& Ser, Rp3dTransform& Trans)
 {
-	if (Ser.IsSaving())
+	if (Ser.GetTypeName() == ArxDebugSerializer::TypeName)
 	{
-		Ser << const_cast<Rp3dVector3&>(Trans.getPosition());
-		Ser << const_cast<Rp3dQuat&>(Trans.getOrientation());
+		FString Str = LexToString(Trans);
+		Ser << Str;
 	}
 	else
 	{
-		Rp3dVector3 Pos;
-		Rp3dQuat Orin;
-		Ser << Pos;
-		Ser << Orin;
-		Trans.setPosition(Pos);
-		Trans.setOrientation(Orin);
+		if (Ser.IsSaving())
+		{
+			Ser << const_cast<Rp3dVector3&>(Trans.getPosition());
+			Ser << const_cast<Rp3dQuat&>(Trans.getOrientation());
+		}
+		else
+		{
+			Rp3dVector3 Pos;
+			Rp3dQuat Orin;
+			Ser << Pos;
+			Ser << Orin;
+			Trans.setPosition(Pos);
+			Trans.setOrientation(Orin);
+		}
 	}
 	return Ser;
 }
