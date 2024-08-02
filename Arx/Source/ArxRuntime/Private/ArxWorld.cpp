@@ -24,15 +24,25 @@ ArxWorld::ArxWorld(UWorld* InWorld)
 
 ArxWorld::~ArxWorld()
 {
+	TArray<ArxEntity*> List;
+	for (auto Ent : Entities)
+	{
+		List.Add(Ent);
+	}
+
+	List.Sort([](const ArxEntity& a,const ArxEntity& b){
+		return a.GetId() > b.GetId();
+	});
+
 	{
 		SCOPED_BOOLEAN(bInitializing);
-		for (auto Ent : Entities)
+		for (auto Ent : List)
 		{
 			Ent->Uninitialize();
 		}
 	}
 
-	for (auto Ent : Entities)
+	for (auto Ent : List)
 	{
 		delete Ent;
 	}

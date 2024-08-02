@@ -144,15 +144,8 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 	const FLinearColor BackgroundGray = { 0.015996,0.015996 ,0.015996};
 	const auto BorderColor = BackgroundGray;
 
-
-	int MaxNumTracks = 0;
-	for (auto& Track : Tracks)
-	{
-		if (!Track.bNeedCompare)
-			continue;
-		MaxNumTracks = FMath::Max(Track.Frames.Num(), MaxNumTracks);
-	}
-	const float HintMapping = (ViewWidth - FrameBeginX) / MaxNumTracks;
+	const auto MaxNumFrames = GetMaxNumFrames();
+	const float HintMapping = (ViewWidth - FrameBeginX) / MaxNumFrames;
 	const float HintWidth = FMath::Max(1.0f, HintMapping);
 
 
@@ -187,11 +180,10 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 	}
 	
 	float MaxLen = FrameBeginX;
-	int MinFrame = MaxNumTracks;
+	int MinFrame = MaxNumFrames;
 	int MaxFrame = 0;
 	// frame
 	{
-		//const float HintWidth = FMath::Max(1.0f, RealFrameWidth);
 		int Index = 0;
 		for (auto& Track : Tracks)
 		{
@@ -316,17 +308,15 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 	} ;
 
 
-
-
-
-
 	{
 		int Lower = FMath::RoundToInt(RealBeginX / RealFrameWidth);
 		float X = FMath::Max(FrameBeginX, FrameBeginX + MinFrame * HintMapping);
 		float Y = HintBeginY;
 		float H = HintHeight;
 		float W = FMath::Max(0, MaxFrame - MinFrame + 1) * HintMapping;
-		DrawLinesLocal({ {X, Y},{X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y } }, FLinearColor::White, 1, HighlightLayerId);
+		//DrawLinesLocal({ {X, Y},{X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y } }, FLinearColor::White, 1, HighlightLayerId);
+		DrawBoxLocal(FrameBeginX, Y, ViewWidth - FrameBeginX, H, FLinearColor::Gray * 0.5f, BackGroundLayerId);
+		DrawBoxLocal(X,Y, W, H,FLinearColor::White * 0.5f, HighlightLayerId);
 
 	}
 
@@ -343,22 +333,31 @@ FReply ArxReplayFrameTrack::OnMouseMove(const FGeometry& MyGeometry, const FPoin
 	MousePosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 
 
-	if (!MouseEvent.GetCursorDelta().IsZero())
+	if ( HasMouseCapture() && MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
-		if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) ||
-			MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton))
-		{
-			if (HasMouseCapture())
-			{
-				auto Offset =  PressedMousePosition - MousePosition;
-				PressedMousePosition = MousePosition;
 
-				BeginX -= Offset.X;
-				bMouseIsMoving = true;
-			}
-		}
-		else
+
+
+		if (Region == 2)
 		{
+			const auto& Pos = MousePosition;
+			auto RelX = Pos.X - FrameBeginX;
+
+			const float RegionWidth = ViewWidth - FrameBeginX;
+			const float RealHintWidth = RegionWidth / GetMaxNumFrames();
+			const auto RealFrameWidth = FrameWidth / Freq;
+			const float NumFrames = RegionWidth / RealFrameWidth;
+			const auto FrameId = RelX / RealHintWidth;
+
+			BeginX = -RealFrameWidth * (FrameId - NumFrames * 0.5f) + FrameBeginX;
+		}
+		else if (!MouseEvent.GetCursorDelta().IsZero() && Region == 1)
+		{
+			auto Offset = PressedMousePosition - MousePosition;
+			PressedMousePosition = MousePosition;
+
+			BeginX -= Offset.X;
+			bMouseIsMoving = true;
 		}
 	}
 	return Reply;
@@ -371,11 +370,11 @@ FReply ArxReplayFrameTrack::OnMouseWheel(const FGeometry& MyGeometry, const FPoi
 	const float Delta = MouseEvent.GetWheelDelta();
 
 	float Len =  (MousePosition.X - BeginX)  * Freq ;
-	if (Delta > 0 )
-		Freq = FMath::Min(1 << 16, Freq << 1);
+	if (Delta > 0)
+		Freq  = FMath::Min(1 << 16, Freq + 1);
 	else
-		Freq = FMath::Max(1, Freq >> 1);
-	
+		Freq = FMath::Max(1, Freq - 1);
+
 
 	BeginX = MousePosition.X - Len / Freq;
 
@@ -399,6 +398,14 @@ FReply ArxReplayFrameTrack::OnMouseButtonDown(const FGeometry& MyGeometry, const
 	PressedMousePosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 	bMouseIsMoving = false;
 
+	const auto& Pos = PressedMousePosition;
+	if (Pos.X < FrameBeginX || Pos.X > ViewWidth || Pos.Y < 0 || Pos.Y > ViewHeight)
+		Region = 0;
+	else if (Pos.Y < HintBeginY)
+		Region = 1;
+	else
+		Region = 2;
+
 	return Reply;
 }
 FReply ArxReplayFrameTrack::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -418,8 +425,7 @@ FReply ArxReplayFrameTrack::OnMouseButtonUp(const FGeometry& MyGeometry, const F
 
 	auto Pos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 
-	constexpr int NumPlayerLimit = 3;
-	if (!bMouseIsMoving && Index < NumPlayerLimit && (Pos - PressedMousePosition).Size() < 0.1f)
+	if (!bMouseIsMoving  && (Pos - PressedMousePosition).Size() < 0.1f)
 	{
 		auto& Selected = Selecteds[Index];
 		Selected = GetFrameByPos(Pos.X, Pos.Y);
@@ -459,6 +465,18 @@ TPair<int, int> ArxReplayFrameTrack::GetFrameByPos(float X, float Y)const
 	int FrameId = FMath::Floor(X / RealWidth);
 	int Index = FMath::Floor(Y / FrameHeight);
 	return TPair<int, int>{Index, FrameId};
+}
+
+int ArxReplayFrameTrack::GetMaxNumFrames()const
+{
+	int MaxNum = 0;
+	for (auto& Track : Tracks)
+	{
+		if (!Track.bNeedCompare)
+			continue;
+		MaxNum = FMath::Max(Track.Frames.Num(), MaxNum);
+	}
+	return MaxNum;
 }
 
 
@@ -543,11 +561,12 @@ void ArxReplayWindow::Construct(const FArguments&)
 	};
 
 
-	auto MakeStepEvent = [this](int Index){
+	auto MakeSimulationEvent = [this](int Index){
 		return [this, Index](){
 			auto Reply = FReply::Handled();
 			if (DummyWorld )
 			{
+				DummyWorld->World = MakeShared<ArxWorld>(DummyWorld->UnrealWorld);
 				int FrameId = TextViews[Index].FrameId;
 				auto PId = TextViews[Index].PlayerId;
 
@@ -605,14 +624,125 @@ void ArxReplayWindow::Construct(const FArguments&)
 					DummyWorld->World->Serialize(Writer);
 
 					auto Hash = FCrc::MemCrc32(Data.GetData(), Data.Num());
-					if (i + 1 < PlayerInfo->FrameSource.Num() && PlayerInfo->FrameSource[i + 1].Data.Num() != 0)
-						SimulationTrack[i + 1].State = (Hash == PlayerInfo->FrameSource[i + 1].Hash) ? FReplayFrame::E_NORMAL : FReplayFrame::E_DIFF;
+					int State = FReplayFrame::E_UNKNOWN;
+					auto NextFrameId = i + 1;
+					for (auto& Item : Replay->PlayerTrackSource)
+					{
+						if (Item.FrameSource.IsValidIndex(NextFrameId))
+						{
+							auto& Frame = Item.FrameSource[NextFrameId];
+							if (Frame.Hash == 0)
+								continue;
+							else if (Frame.Hash == Hash)
+							{
+								State = Frame.State;
+								break;
+							}
+							else
+							{
+								State = FReplayFrame::E_ERROR;
+							}
+						}
+					}
+					SimulationTrack[NextFrameId].State = State;
+					SimulationTrack[NextFrameId].FrameId = NextFrameId;
 				}
 
 			}
 			return Reply;
 		};
 	};
+
+
+	auto MakeStepEvent = [this](int Index) {
+		return [this, Index]() {
+			auto Reply = FReply::Handled();
+			if (DummyWorld)
+			{
+				DummyWorld->World = MakeShared<ArxWorld>(DummyWorld->UnrealWorld);
+				int FrameId = TextViews[Index].FrameId;
+				auto PId = TextViews[Index].PlayerId;
+
+				ReplayInfo* Replay = nullptr;
+				for (auto& Item : LevelTrackSource)
+				{
+					if (Item->LevelName == SelectedLevelName)
+					{
+						Replay = Item.Get();
+					}
+				}
+
+				if (!Replay)
+					return Reply;
+
+				ReplayInfo::PlayerInfo* PlayerInfo = nullptr;
+				for (auto& Item : Replay->PlayerTrackSource)
+				{
+					if (Item.PId == PId)
+					{
+						PlayerInfo = &Item;
+					}
+				}
+
+				if (!PlayerInfo)
+					return Reply;
+
+				auto NexrtFrameId = FrameId + 1;
+				if (SimulationTrack.Num() <= NexrtFrameId)
+				{
+					SimulationTrack.AddDefaulted(NexrtFrameId - SimulationTrack.Num() + 1);
+				}
+				SimulationTrack[NexrtFrameId].FrameId = NexrtFrameId;
+
+
+				if (PlayerInfo->FrameSource[FrameId].Data.Num() == 0)
+				{
+					return Reply;
+				}
+
+
+				ArxReader Reader(PlayerInfo->FrameSource[FrameId].Data);
+				DummyWorld->Serialize(Reader);
+
+
+				auto& ComSys = DummyWorld->World->GetSystem<ArxCommandSystem>();
+				if (FrameId < Replay->Commands.Num())
+					ComSys.ReceiveCommands(&Replay->Commands[FrameId].Data);
+
+				DummyWorld->World->Update();
+
+
+				auto& Data = SimulationTrack[NexrtFrameId].Data;
+				Data.Reset();
+				ArxWriter Writer(Data);
+				DummyWorld->World->Serialize(Writer);
+
+				auto Hash = FCrc::MemCrc32(Data.GetData(), Data.Num());
+				int State = FReplayFrame::E_UNKNOWN;
+				for (auto& Item : Replay->PlayerTrackSource)
+				{
+					if (Item.FrameSource.IsValidIndex(NexrtFrameId))
+					{
+						auto& Frame = Item.FrameSource[NexrtFrameId];
+						if (Frame.Hash == 0)
+							continue;
+						else if (Frame.Hash == Hash)
+						{
+							State = Frame.State;
+							break;
+						}
+						else
+						{
+							State = FReplayFrame::E_ERROR;
+						}
+					}
+				}
+				SimulationTrack[NexrtFrameId].State = State;
+			}
+			return Reply;
+		};
+	};
+
 
 	auto MakeCopyEvent = [this](int Index) {
 		return [this, Index]() {
@@ -642,29 +772,6 @@ void ArxReplayWindow::Construct(const FArguments&)
 			int FrameId = TextViews[Index].FrameId;
 			auto PId = TextViews[Index].PlayerId;
 
-			ReplayInfo* Replay = nullptr;
-			for (auto& Item : LevelTrackSource)
-			{
-				if (Item->LevelName == SelectedLevelName)
-				{
-					Replay = Item.Get();
-				}
-			}
-
-			if (!Replay)
-				return Reply;
-
-			ReplayInfo::PlayerInfo* PlayerInfo = nullptr;
-			for (auto& Item : Replay->PlayerTrackSource)
-			{
-				if (Item.PId == PId)
-				{
-					PlayerInfo = &Item;
-				}
-			}
-
-			if (!PlayerInfo)
-				return Reply;
 
 			auto& FileMgr = IFileManager::Get();
 
@@ -673,7 +780,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 			auto OutputFile = FileMgr.CreateFileWriter(*FilePath, 0);
 			check(OutputFile);
 
-			auto& Data = PlayerInfo->FrameSource[FrameId].Data;
+			auto& Data = TextViews[Index].SnapshotData;
 			OutputFile->Serialize(Data.GetData(), Data.Num());
 			
 			delete OutputFile;
@@ -895,7 +1002,9 @@ void ArxReplayWindow::Construct(const FArguments&)
 								[
 									SNew(SHorizontalBox)
 									+ SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeStepEvent(0))]
+									[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeSimulationEvent(0))]
+									+ SHorizontalBox::Slot().AutoWidth()
+									[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent(0))]
 									+ SHorizontalBox::Slot().AutoWidth()
 									[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(0))]
 									+ SHorizontalBox::Slot().AutoWidth()
@@ -906,7 +1015,9 @@ void ArxReplayWindow::Construct(const FArguments&)
 								[
 									SNew(SHorizontalBox)
 									+ SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeStepEvent(1))]
+									[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeSimulationEvent(1))]
+									+ SHorizontalBox::Slot().AutoWidth()
+									[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent(0))]
 									+ SHorizontalBox::Slot().AutoWidth()
 									[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(1))]
                                     + SHorizontalBox::Slot().AutoWidth()
@@ -922,11 +1033,11 @@ void ArxReplayWindow::Construct(const FArguments&)
 									+ SScrollBox::Slot()
 									[
 										SNew(SHorizontalBox)
-										+ SHorizontalBox::Slot()
+										+ SHorizontalBox::Slot().FillWidth(0.5)
 										[
 											MakeTextView(TextViews[0])
 										]
-										+ SHorizontalBox::Slot()
+										+ SHorizontalBox::Slot().FillWidth(0.5)
 										[
 											MakeTextView(TextViews[1])
 										]
@@ -969,9 +1080,11 @@ void ArxReplayWindow::Construct(const FArguments&)
 				DummyWorld->Serialize(DebugView);
 			}
 			TextViews[Index].Refresh(Data);
-
+			TextViews[Index].SnapshotData = Data;
 			TextViews[Index].FrameId = Frame.FrameId;
-			LexFromString(TextViews[Index].PlayerId, *Name);
+			TextViews[Index].PlayerId = NON_PLAYER_CONTROL;
+			if (FCString::IsNumeric(*Name))
+				LexFromString(TextViews[Index].PlayerId, *Name);
 
 			auto StdFrame = Getter(Frame.FrameId + 1, [](auto& Name, auto& Frame) {
 				return Name != TEXT("Commands") && Frame.State == FReplayFrame::E_NORMAL;

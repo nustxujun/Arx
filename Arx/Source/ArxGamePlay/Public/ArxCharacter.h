@@ -44,7 +44,7 @@ private:
 		virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 		URp3dRigidBody* RigidBody = nullptr;
-		URp3dCollisionShape* CollisionShape = nullptr;
+		TSharedPtr<Rp3dCollisionShape> CollisionShape ;
 	};
 	
 	FContainer Container;

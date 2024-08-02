@@ -56,7 +56,7 @@ public:
     void SetFrameListener(FrameListener  Callback){ OnFrameChanged  = MoveTemp(Callback); };
 private:
     TPair<int, int> GetFrameByPos(float X, float Y)const ;
-
+    int GetMaxNumFrames()const;
 private:
     FGeometry ThisGeometry;
     struct Track
@@ -80,7 +80,7 @@ private:
     const float FrameBeginY = 50;
     const float FrameWidth = 10;
     const float FrameHeight = 20;
-    const float HintHeight = 5;
+    const float HintHeight = 10;
 
     float ViewWidth = 0;
     float ViewHeight = 0;
@@ -88,7 +88,7 @@ private:
     float HintBeginY = 0;
     //float Scale = 1.0f;
     int Freq = 1;
-    
+    int Region = 0;
 
     bool bIsViewportDirty = true;
     bool bIsStateDirty = true;
@@ -210,7 +210,8 @@ private:
         TArray<TextItem> Source;
         TSharedPtr<SListView<TextItem>> Widget;
         int FrameId = 0;
-        ArxPlayerId PlayerId = 0;
+        ArxPlayerId PlayerId = NON_PLAYER_CONTROL;
+        TArray<uint8> SnapshotData;
 
         void Refresh(const TArray<uint8>& Data);
     }TextViews[2];

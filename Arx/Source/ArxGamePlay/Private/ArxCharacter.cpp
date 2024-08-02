@@ -20,8 +20,6 @@ void ArxCharacter::FContainer::AddReferencedObjects(FReferenceCollector& Collect
 {
 	if (RigidBody)
 		Collector.AddReferencedObject(RigidBody);
-	if (CollisionShape)
-		Collector.AddReferencedObject(CollisionShape);
 }
 
 void ArxCharacter::Initialize(bool bIsReplicated)
@@ -29,23 +27,26 @@ void ArxCharacter::Initialize(bool bIsReplicated)
 	FWorldContext* WorldContext = GEngine->GetWorldContextFromGameViewport(GEngine->GameViewport);
 	auto UnrealWorld = WorldContext->World();
 
-	//Container.CollisionShape = URp3dCollisionShape::CreateBoxShape({50,50,50});
-	Container.CollisionShape = URp3dCollisionShape::CreateCapsuleShape(50,100);
+	//Container.CollisionShape = URp3dCollisionShape::CreateCapsuleShape(50,100);
+	Container.CollisionShape = Rp3dCollisionShape::CreateSphereShape(50);
+
 
 	auto& PhysicsSys = GetWorld().GetSystem<ArxPhysicsSystem>();
 	Container.RigidBody = PhysicsSys.CreateRigidBody();
 	auto Collider = Container.RigidBody->AddCollisionShape(Container.CollisionShape);
+	Collider.SetBounciness(0.5);
+	Collider.SetFriction(0.0);
+
 	Container.RigidBody->UpdateMassPropertiesFromColliders();
-	//Container.RigidBody->SetIsDebugEnabled(true);
+	Container.RigidBody->SetIsDebugEnabled(true);
 
 
 	auto Pos = FVector(- 290.000000, -180.000000, 454.645386 + GetId() * 200 -300);
 	auto Rot = FRotator(0,0,90);
 	auto Trans = FTransform(Rot, Pos);
 	Container.RigidBody->SetTransform(UE_TO_RP3D(Trans));
-	Container.RigidBody->SetAngularLockAxisFactor({0,0,0});
-	Container.RigidBody->EnableGravity(false);
-	Collider.SetBounciness(0);
+	//Container.RigidBody->SetAngularLockAxisFactor({0,0,0});
+	//Container.RigidBody->EnableGravity(false);
 
 	Gravity = {0,0,0};
 	MoveVel = {0,0,0};
@@ -73,6 +74,8 @@ void ArxCharacter::Uninitialize(bool bIsReplicated)
 
 	if (Container.RigidBody)
 		Container.RigidBody->RemoveFromWorld();
+
+	Container.CollisionShape.Reset();
 
 	UArxRenderableSubsystem::Get(GetWorld().GetUnrealWorld()).Unlink(this);
 
@@ -124,8 +127,8 @@ void ArxCharacter::OnEvent(ArxEntityId Sender, uint64 Type, uint64 Param)
 
 void ArxCharacter::Update()
 {
-	Gravity.z = Container.RigidBody->GetLinearVelocity().z - UE_TO_RP3D(1000) * ArxConstants::TimeStep;
-	Container.RigidBody->SetLinearVelocity(MoveVel + Gravity);
+	//Gravity.z = Container.RigidBody->GetLinearVelocity().z - UE_TO_RP3D(1000) * (reactphysics3d::decimal)ArxConstants::TimeStep;
+	//Container.RigidBody->SetLinearVelocity(MoveVel + Gravity);
 }
 
 URp3dRigidBody* ArxCharacter::GetRigidBody()
