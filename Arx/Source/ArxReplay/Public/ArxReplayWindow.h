@@ -57,6 +57,7 @@ public:
 private:
     TPair<int, int> GetFrameByPos(float X, float Y)const ;
     int GetMaxNumFrames()const;
+    void ScrollTrack(const FVector2D& Pos);
 private:
     FGeometry ThisGeometry;
     struct Track

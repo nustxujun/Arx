@@ -160,7 +160,7 @@ private:
             for (auto EntId : *List)
             {
                 auto Ent = World.GetEntity(EntId);
-                Ent->OnEvent(GetId(), ArxEntity::EVENT_ON_BLACKBOARD_VALUE_CHANGED, Id);
+                Ent->OnEvent(GetId(), EVENT_ON_BLACKBOARD_VALUE_CHANGED, Id);
             }
         }
     }

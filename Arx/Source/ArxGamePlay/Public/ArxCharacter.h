@@ -48,6 +48,4 @@ private:
 	};
 	
 	FContainer Container;
-	Rp3dVector3 MoveVel;
-	Rp3dVector3 Gravity;
 };

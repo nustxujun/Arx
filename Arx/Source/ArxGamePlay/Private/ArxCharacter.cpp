@@ -48,9 +48,6 @@ void ArxCharacter::Initialize(bool bIsReplicated)
 	//Container.RigidBody->SetAngularLockAxisFactor({0,0,0});
 	//Container.RigidBody->EnableGravity(false);
 
-	Gravity = {0,0,0};
-	MoveVel = {0,0,0};
-
 	if (bIsReplicated)
 	{
 		
@@ -144,7 +141,9 @@ const Rp3dTransform& ArxCharacter::GetTransform()
 
 void ArxCharacter::MoveDirectly(const Rp3dVector3& Dir)
 {
-	MoveVel = Dir;
+	Container.RigidBody->ResetForce();
+	if (!Dir.isZero())
+		Container.RigidBody->ApplyForceAtCenterOfMass(Dir);
 }
 
 void ArxCharacter::Move_Internal(ArxPlayerId PId, const Rp3dVector3& Dir)

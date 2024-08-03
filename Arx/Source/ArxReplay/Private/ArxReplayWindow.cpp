@@ -201,6 +201,7 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 
 				int FrameLayerId ;
 				FLinearColor FrameColor;
+				bool bDrawHint = false;
 				if (Frame.State == FReplayFrame::E_NORMAL)
 				{
 					FrameLayerId = Frame2LayerId;
@@ -210,21 +211,22 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 				{
 					FrameLayerId = Frame3LayerId;
 					FrameColor = FLinearColor::Yellow;
-					DrawBoxLocal(FrameBeginX + HintMapping * FrameId, HintBeginY, HintWidth, HintHeight, FrameColor, FrameLayerId);
-
+					bDrawHint = true;
 				}
 				else if (Frame.State == FReplayFrame::E_ERROR)
 				{
 					FrameLayerId = Frame4LayerId;
 					FrameColor = FLinearColor::Red;
-
-					DrawBoxLocal(FrameBeginX + HintMapping * FrameId, HintBeginY, HintWidth, HintHeight, FrameColor, FrameLayerId);
+					bDrawHint = true;
 				}
 				else
 				{
 					FrameColor = FLinearColor::Gray;
 					FrameLayerId = Frame1LayerId;
 				}
+
+				if (bDrawHint)
+				DrawBoxLocal(FrameBeginX + HintMapping * FrameId, HintBeginY + 2, HintWidth, HintHeight - 4, FrameColor, FrameLayerId);
 
 				if (X < FrameBeginX)
 					continue;
@@ -316,7 +318,7 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 		float W = FMath::Max(0, MaxFrame - MinFrame + 1) * HintMapping;
 		//DrawLinesLocal({ {X, Y},{X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y } }, FLinearColor::White, 1, HighlightLayerId);
 		DrawBoxLocal(FrameBeginX, Y, ViewWidth - FrameBeginX, H, FLinearColor::Gray * 0.5f, BackGroundLayerId);
-		DrawBoxLocal(X,Y, W, H,FLinearColor::White * 0.5f, HighlightLayerId);
+		DrawBoxLocal(X,Y, W, H,FLinearColor::White, BackGroundLayerId);
 
 	}
 
@@ -324,6 +326,20 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 
 
 	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId , InWidgetStyle, bParentEnabled && IsEnabled());
+}
+
+
+void ArxReplayFrameTrack::ScrollTrack(const FVector2D& Pos)
+{
+	auto RelX = Pos.X - FrameBeginX;
+
+	const float RegionWidth = ViewWidth - FrameBeginX;
+	const float RealHintWidth = RegionWidth / GetMaxNumFrames();
+	const auto RealFrameWidth = FrameWidth / Freq;
+	const float NumFrames = RegionWidth / RealFrameWidth;
+	const auto FrameId = RelX / RealHintWidth;
+
+	BeginX = -RealFrameWidth * (FrameId - NumFrames * 0.5f) + FrameBeginX;
 }
 
 
@@ -335,21 +351,9 @@ FReply ArxReplayFrameTrack::OnMouseMove(const FGeometry& MyGeometry, const FPoin
 
 	if ( HasMouseCapture() && MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
-
-
-
 		if (Region == 2)
 		{
-			const auto& Pos = MousePosition;
-			auto RelX = Pos.X - FrameBeginX;
-
-			const float RegionWidth = ViewWidth - FrameBeginX;
-			const float RealHintWidth = RegionWidth / GetMaxNumFrames();
-			const auto RealFrameWidth = FrameWidth / Freq;
-			const float NumFrames = RegionWidth / RealFrameWidth;
-			const auto FrameId = RelX / RealHintWidth;
-
-			BeginX = -RealFrameWidth * (FrameId - NumFrames * 0.5f) + FrameBeginX;
+			ScrollTrack(MousePosition);
 		}
 		else if (!MouseEvent.GetCursorDelta().IsZero() && Region == 1)
 		{
@@ -404,8 +408,10 @@ FReply ArxReplayFrameTrack::OnMouseButtonDown(const FGeometry& MyGeometry, const
 	else if (Pos.Y < HintBeginY)
 		Region = 1;
 	else
+	{
 		Region = 2;
-
+		ScrollTrack(PressedMousePosition);
+	}
 	return Reply;
 }
 FReply ArxReplayFrameTrack::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -675,16 +681,21 @@ void ArxReplayWindow::Construct(const FArguments&)
 				if (!Replay)
 					return Reply;
 
-				ReplayInfo::PlayerInfo* PlayerInfo = nullptr;
+				TArray<FReplayFrame>* Frames = nullptr;
 				for (auto& Item : Replay->PlayerTrackSource)
 				{
 					if (Item.PId == PId)
 					{
-						PlayerInfo = &Item;
+						Frames = &Item.FrameSource;
 					}
 				}
 
-				if (!PlayerInfo)
+				if (PId == -1)
+				{
+					Frames = &Replay->Commands;
+				}
+
+				if (!Frames)
 					return Reply;
 
 				auto NexrtFrameId = FrameId + 1;
@@ -695,13 +706,13 @@ void ArxReplayWindow::Construct(const FArguments&)
 				SimulationTrack[NexrtFrameId].FrameId = NexrtFrameId;
 
 
-				if (PlayerInfo->FrameSource[FrameId].Data.Num() == 0)
+				if ((*Frames)[FrameId].Data.Num() == 0)
 				{
 					return Reply;
 				}
 
 
-				ArxReader Reader(PlayerInfo->FrameSource[FrameId].Data);
+				ArxReader Reader((*Frames)[FrameId].Data);
 				DummyWorld->Serialize(Reader);
 
 
@@ -886,15 +897,15 @@ void ArxReplayWindow::Construct(const FArguments&)
 					.HAlign(EHorizontalAlignment::HAlign_Center)
 					.ButtonColorAndOpacity_Lambda([this](){
 						if (!DummyWorld )
-							return FLinearColor(1,0.5,0.5);
+							return FLinearColor::Red;
 						else
 						{
 							auto PathName = DummyWorld->UnrealWorld->GetOutermost()->GetPathName();
 							auto LevelName = FPaths::GetBaseFilename(PathName);
 							if (LevelName == SelectedLevelName)
-								return FLinearColor(0.5, 1.0, 0.5);
+								return FLinearColor::Green;
 							else
-								return FLinearColor(1,1,0.5);
+								return FLinearColor::Yellow;
 						}
 
 					
@@ -1391,8 +1402,11 @@ void ArxReplayOpenAssetDialog::Construct(const FArguments& InArgs, FVector2D InS
 	AssetPickerConfig.bCanShowClasses = false;
 	AssetPickerConfig.bAddFilterUI = true;
 	AssetPickerConfig.SaveSettingsName = TEXT("AssetPicker");
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 1 // 5.1
+	AssetPickerConfig.Filter.ClassPaths.Add(UWorld::StaticClass()->GetClassPathName());
+#else
 	AssetPickerConfig.Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
-
+#endif
 	ChildSlot
 	[
 		SNew(SBox)
