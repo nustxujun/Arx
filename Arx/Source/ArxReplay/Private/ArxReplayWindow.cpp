@@ -21,14 +21,14 @@
 #define LOCTEXT_NAMESPACE "ArxReplay"
 
 
-static int RegisterReplayCommand =[](){
-	static TAutoConsoleVariable<int> ConsoleVariable(TEXT("arx.showreplay"),0,TEXT(""));
-	ConsoleVariable->SetOnChangedCallback(FConsoleVariableDelegate::CreateLambda([](IConsoleVariable* CVar){
+static int RegisterReplayCommand = []() {
+	static TAutoConsoleVariable<int> ConsoleVariable(TEXT("arx.showreplay"), 0, TEXT(""));
+	ConsoleVariable->SetOnChangedCallback(FConsoleVariableDelegate::CreateLambda([](IConsoleVariable* CVar) {
 		static TWeakPtr<SWidget> WeakRef;
 		if (!WeakRef.IsValid())
 		{
-			auto Widget =	SNew(SBorder)
-			[SNew(ArxReplayWindow)];
+			auto Widget = SNew(SBorder)
+				[SNew(ArxReplayWindow)];
 			WeakRef = Widget;
 			if (GEngine->GameViewport)
 				GEngine->GameViewport->AddViewportWidgetContent(Widget, 1000);
@@ -42,7 +42,7 @@ static int RegisterReplayCommand =[](){
 		}
 #endif
 
-	}));
+		}));
 	return 0;
 }();
 
@@ -79,17 +79,17 @@ void ArxReplayFrameTrack::Tick(const FGeometry& AllottedGeometry, const double I
 
 static void DrawBox(const FGeometry& Geometry, int LayerId, FSlateWindowElementList& OutDrawElements, float X, float Y, float W, float H, const ESlateDrawEffect InDrawEffects, const FSlateBrush* Brush, const FLinearColor& Color)
 {
-	FSlateDrawElement::MakeBox(OutDrawElements, LayerId,  Geometry.ToPaintGeometry(FVector2D(W, H), FSlateLayoutTransform(1.0f, FVector2D(X, Y))), Brush,InDrawEffects, Color);
+	FSlateDrawElement::MakeBox(OutDrawElements, LayerId, Geometry.ToPaintGeometry(FVector2D(W, H), FSlateLayoutTransform(1.0f, FVector2D(X, Y))), Brush, InDrawEffects, Color);
 }
 
 static void DrawText(const FGeometry& Geometry, int LayerId, FSlateWindowElementList& OutDrawElements, float X, float Y, const FString& Text, const FSlateFontInfo& Font, const ESlateDrawEffect InDrawEffects, const FLinearColor& Color)
 {
-	FSlateDrawElement::MakeText(OutDrawElements, LayerId, Geometry.ToPaintGeometry(FSlateLayoutTransform(1.0f, FVector2D(X, Y))),Text,Font, InDrawEffects,Color);
+	FSlateDrawElement::MakeText(OutDrawElements, LayerId, Geometry.ToPaintGeometry(FSlateLayoutTransform(1.0f, FVector2D(X, Y))), Text, Font, InDrawEffects, Color);
 }
 
 static void DrawLine(const FGeometry& Geometry, int LayerId, FSlateWindowElementList& OutDrawElements, float X1, float Y1, float X2, float Y2, const ESlateDrawEffect InDrawEffects, float Thickness, const FLinearColor& Color)
 {
-	FSlateDrawElement::MakeLines(OutDrawElements, LayerId, Geometry.ToPaintGeometry(), TArray<FVector2D>{{X1, Y1},{X2,Y2}},InDrawEffects,Color, false, Thickness);
+	FSlateDrawElement::MakeLines(OutDrawElements, LayerId, Geometry.ToPaintGeometry(), TArray<FVector2D>{ {X1, Y1}, { X2,Y2 }}, InDrawEffects, Color, false, Thickness);
 }
 
 static void DrawLines(const FGeometry& Geometry, int LayerId, FSlateWindowElementList& OutDrawElements, const TArray<FVector2D>& Lines, const ESlateDrawEffect InDrawEffects, float Thickness, const FLinearColor& Color)
@@ -117,19 +117,19 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 
 	LayerId = HighlightLayerId + 1;
 
-	auto DrawBoxLocal = [&](float x, float y, float w, float h, const FLinearColor & Color, auto LayerId)
+	auto DrawBoxLocal = [&](float x, float y, float w, float h, const FLinearColor& Color, auto LayerId)
 	{
-		DrawBox(AllottedGeometry, LayerId, OutDrawElements,x,y,w,h, DrawEffects, &Brush,Color);
+		DrawBox(AllottedGeometry, LayerId, OutDrawElements, x, y, w, h, DrawEffects, &Brush, Color);
 	};
 
-	auto DrawTextLocal = [&](float x, float y,const auto& Text,const auto& Color, auto LayerId)
+	auto DrawTextLocal = [&](float x, float y, const auto& Text, const auto& Color, auto LayerId)
 	{
-		DrawText(AllottedGeometry, LayerId, OutDrawElements, x,y, Text, SummaryFont, DrawEffects, Color);
+		DrawText(AllottedGeometry, LayerId, OutDrawElements, x, y, Text, SummaryFont, DrawEffects, Color);
 	};
 
-	auto DrawLineLocal = [&](auto x1, auto y1, auto x2, auto y2, const auto& Color ,auto thickness, auto LayerId)
+	auto DrawLineLocal = [&](auto x1, auto y1, auto x2, auto y2, const auto& Color, auto thickness, auto LayerId)
 	{
-		DrawLine(AllottedGeometry, LayerId, OutDrawElements,x1,y1,x2,y2, DrawEffects, thickness, Color);
+		DrawLine(AllottedGeometry, LayerId, OutDrawElements, x1, y1, x2, y2, DrawEffects, thickness, Color);
 	};
 
 	auto DrawLinesLocal = [&](const TArray<FVector2D>& Lines, const auto& Color, auto thickness, auto LayerId)
@@ -141,7 +141,7 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 	const bool bThin = RealFrameWidth < 3;
 	const float RealBeginX = BeginX - FMath::Fmod(BeginX, RealFrameWidth);
 
-	const FLinearColor BackgroundGray = { 0.015996,0.015996 ,0.015996};
+	const FLinearColor BackgroundGray = { 0.015996,0.015996 ,0.015996 };
 	const auto BorderColor = BackgroundGray;
 
 	const auto MaxNumFrames = GetMaxNumFrames();
@@ -159,26 +159,26 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 		{
 			if (X < FrameBeginX)
 				continue;
-			if (Index  % 5 == 0)
+			if (Index % 5 == 0)
 			{
-				if (Index  % 10 == 0)
-					DrawLineLocal(X, 0, X, 10, FLinearColor::Gray, 2,LineLayerId);
+				if (Index % 10 == 0)
+					DrawLineLocal(X, 0, X, 10, FLinearColor::Gray, 2, LineLayerId);
 				else
 					DrawLineLocal(X, 0, X, 7, FLinearColor::Gray, 1, LineLayerId);
 
-				const FString Text = LexToString(  Index * IndexScale);
+				const FString Text = LexToString(Index * IndexScale);
 				const FVector2D TextSize = FontMeasureService->Measure(Text, SummaryFont);
 
-				DrawTextLocal(X - TextSize.X / 2, 12, Text, FLinearColor::Gray,TextLayerId);
+				DrawTextLocal(X - TextSize.X / 2, 12, Text, FLinearColor::Gray, TextLayerId);
 			}
 			else
 			{
-				DrawLineLocal(X, 0, X, 4, FLinearColor::Gray,  1, LineLayerId);
+				DrawLineLocal(X, 0, X, 4, FLinearColor::Gray, 1, LineLayerId);
 			}
 
 		}
 	}
-	
+
 	float MaxLen = FrameBeginX;
 	int MinFrame = MaxNumFrames;
 	int MaxFrame = 0;
@@ -188,10 +188,10 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 		for (auto& Track : Tracks)
 		{
 			const auto TrackY = FrameBeginY + Index * FrameHeight;
-			DrawTextLocal( 0, TrackY, Track.Name,  FLinearColor::White,TextLayerId);
+			DrawTextLocal(0, TrackY, Track.Name, FLinearColor::White, TextLayerId);
 
 			int Count = Track.Frames.Num();
-			for (int FrameId = 0;  FrameId < Count;  FrameId++)
+			for (int FrameId = 0; FrameId < Count; FrameId++)
 			{
 				auto X = RealBeginX + FrameId * RealFrameWidth;
 
@@ -199,7 +199,7 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 				auto& Frame = Track.Frames[FrameId];
 
 
-				int FrameLayerId ;
+				int FrameLayerId;
 				FLinearColor FrameColor;
 				bool bDrawHint = false;
 				if (Frame.State == FReplayFrame::E_NORMAL)
@@ -226,7 +226,7 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 				}
 
 				if (bDrawHint)
-				DrawBoxLocal(FrameBeginX + HintMapping * FrameId, HintBeginY + 2, HintWidth, HintHeight - 4, FrameColor, FrameLayerId);
+					DrawBoxLocal(FrameBeginX + HintMapping * FrameId, HintBeginY + 2, HintWidth, HintHeight - 4, FrameColor, FrameLayerId);
 
 				if (X < FrameBeginX)
 					continue;
@@ -240,16 +240,16 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 
 
 				DrawBoxLocal(X, TrackY, RealFrameWidth, FrameHeight, FrameColor, FrameLayerId);
-				MaxLen = FMath::Max(MaxLen , X + RealFrameWidth);
+				MaxLen = FMath::Max(MaxLen, X + RealFrameWidth);
 
 				if (bThin)
 					continue;
 
 				//X += 1;
-				auto Y = TrackY ;
+				auto Y = TrackY;
 
 				auto W = RealFrameWidth;
-				auto H = FrameHeight ;
+				auto H = FrameHeight;
 
 				DrawLinesLocal({ {X, Y}, {X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y } }, BorderColor, 1, LineLayerId);
 			}
@@ -263,16 +263,16 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 	if (CurFrame.Value >= 0)
 	{
 		DrawLineLocal(MousePosition.X, 0, MousePosition.X, ViewHeight, FLinearColor::Gray * 0.5, 1, LineLayerId);
-		DrawTextLocal(MousePosition.X + 5, FrameBeginY - 15, LexToString(CurFrame.Value),FLinearColor::Gray ,TextLayerId);
+		DrawTextLocal(MousePosition.X + 5, FrameBeginY - 15, LexToString(CurFrame.Value), FLinearColor::Gray, TextLayerId);
 	}
 
 	// highlight
-	if (CurFrame.Key >=0 && CurFrame.Value >= 0 && CurFrame.Key < Tracks.Num())
+	if (CurFrame.Key >= 0 && CurFrame.Value >= 0 && CurFrame.Key < Tracks.Num())
 	{
 		auto& Track = Tracks[CurFrame.Key];
-		if (CurFrame.Value < Track.Frames.Num() )
+		if (CurFrame.Value < Track.Frames.Num())
 		{
-			do 
+			do
 			{
 				auto X = RealBeginX + CurFrame.Value * RealFrameWidth;
 				auto Y = FrameBeginY + CurFrame.Key * FrameHeight;
@@ -284,7 +284,7 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 				auto H = FrameHeight + 1;
 
 				DrawLinesLocal({ {X, Y}, {X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y} }, FLinearColor::White, 2, HighlightLayerId);
-			}while(0);
+			} while (0);
 		}
 	}
 
@@ -300,14 +300,14 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 		auto X = RealBeginX + Selected.Value * RealFrameWidth;
 		auto Y = FrameBeginY + Selected.Key * FrameHeight;
 
-		if (X < FrameBeginX || X  >= BGX + BGLen || Y < FrameBeginY || Y + FrameHeight > HintBeginY)
+		if (X < FrameBeginX || X >= BGX + BGLen || Y < FrameBeginY || Y + FrameHeight > HintBeginY)
 			break;
 
 		auto W = RealFrameWidth + 1;
 		auto H = FrameHeight + 1;
 
 		DrawLinesLocal({ {X, Y}, {X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y } }, FLinearColor::White, 2, HighlightLayerId);
-	} ;
+	};
 
 
 	{
@@ -318,14 +318,14 @@ int32 ArxReplayFrameTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 		float W = FMath::Max(0, MaxFrame - MinFrame + 1) * HintMapping;
 		//DrawLinesLocal({ {X, Y},{X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X,Y } }, FLinearColor::White, 1, HighlightLayerId);
 		DrawBoxLocal(FrameBeginX, Y, ViewWidth - FrameBeginX, H, FLinearColor::Gray * 0.5f, BackGroundLayerId);
-		DrawBoxLocal(X,Y, W, H,FLinearColor::White, BackGroundLayerId);
+		DrawBoxLocal(X, Y, W, H, FLinearColor::White, BackGroundLayerId);
 
 	}
 
 
 
 
-	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId , InWidgetStyle, bParentEnabled && IsEnabled());
+	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled());
 }
 
 
@@ -349,7 +349,7 @@ FReply ArxReplayFrameTrack::OnMouseMove(const FGeometry& MyGeometry, const FPoin
 	MousePosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 
 
-	if ( HasMouseCapture() && MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+	if (HasMouseCapture() && MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
 		if (Region == 2)
 		{
@@ -373,9 +373,9 @@ FReply ArxReplayFrameTrack::OnMouseWheel(const FGeometry& MyGeometry, const FPoi
 
 	const float Delta = MouseEvent.GetWheelDelta();
 
-	float Len =  (MousePosition.X - BeginX)  * Freq ;
+	float Len = (MousePosition.X - BeginX) * Freq;
 	if (Delta > 0)
-		Freq  = FMath::Min(1 << 16, Freq + 1);
+		Freq = FMath::Min(1 << 16, Freq + 1);
 	else
 		Freq = FMath::Max(1, Freq - 1);
 
@@ -431,7 +431,7 @@ FReply ArxReplayFrameTrack::OnMouseButtonUp(const FGeometry& MyGeometry, const F
 
 	auto Pos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 
-	if (!bMouseIsMoving  && (Pos - PressedMousePosition).Size() < 0.1f)
+	if (!bMouseIsMoving && (Pos - PressedMousePosition).Size() < 0.1f)
 	{
 		auto& Selected = Selecteds[Index];
 		Selected = GetFrameByPos(Pos.X, Pos.Y);
@@ -441,7 +441,7 @@ FReply ArxReplayFrameTrack::OnMouseButtonUp(const FGeometry& MyGeometry, const F
 			{
 				for (auto& Track : Tracks)
 				{
-					if (Track.Frames.IsValidIndex(FrameId) && Func(Track.Name,Track.Frames[FrameId]))
+					if (Track.Frames.IsValidIndex(FrameId) && Func(Track.Name, Track.Frames[FrameId]))
 						return &Track.Frames[FrameId];
 				}
 				return nullptr;
@@ -486,9 +486,9 @@ int ArxReplayFrameTrack::GetMaxNumFrames()const
 }
 
 
-void ArxReplayFrameTrack::AddTrack(const FString& Name,const TArray<FReplayFrame>& Frames, bool bCmp)
+void ArxReplayFrameTrack::AddTrack(const FString& Name, const TArray<FReplayFrame>& Frames, bool bCmp)
 {
-	Tracks.Add({Name, Frames,bCmp });
+	Tracks.Add({ Name, Frames,bCmp });
 
 	HintBeginY = FrameBeginY + Tracks.Num() * FrameHeight + 10;
 	RequiredHeight = HintBeginY + HintHeight + 10;
@@ -496,12 +496,12 @@ void ArxReplayFrameTrack::AddTrack(const FString& Name,const TArray<FReplayFrame
 
 static const FTableRowStyle* GetStyle(int State)
 {
-	static const FSlateColorBrush Red(FLinearColor(0.1,0,0)) ;
-	static const FSlateColorBrush Green(FLinearColor(0,0.1,0)); 
-	static const FSlateColorBrush Black(FLinearColor::Black); 
+	static const FSlateColorBrush Red(FLinearColor(0.1, 0, 0));
+	static const FSlateColorBrush Green(FLinearColor(0, 0.1, 0));
+	static const FSlateColorBrush Black(FLinearColor::Black);
 	static const FSlateColorBrush Selected(FLinearColor::Gray);
 
-	auto Get = [&](const FSlateColorBrush& Brush){
+	auto Get = [&](const FSlateColorBrush& Brush) {
 		auto Style = FCoreStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row");
 		Style.SetEvenRowBackgroundBrush(Brush);
 		Style.SetOddRowBackgroundBrush(Brush);
@@ -529,7 +529,7 @@ static const FTableRowStyle* GetStyle(int State)
 	}
 }
 
-void ArxReplayWindow::InitWorld(UWorld* InWorld )
+void ArxReplayWindow::InitWorld(UWorld* InWorld)
 {
 	DummyWorld.Reset();
 	DummyWorld = MakeShared<FDummyWorld>(InWorld);
@@ -546,7 +546,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 	static const auto DefaultPath = FPaths::Combine(FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir()), TEXT("Arx"));
 	Workspace = DefaultPath;
 
-	auto RefreshFileList = [this](){
+	auto RefreshFileList = [this]() {
 		auto& FileMgr = IFileManager::Get();
 		FileSource.Reset();
 		if (FPaths::DirectoryExists(Workspace))
@@ -558,19 +558,19 @@ void ArxReplayWindow::Construct(const FArguments&)
 					FileSource.Add(MakeShared<FString>(DirName));
 				}
 				return true;
-			});
+				});
 		}
-		FileSource.StableSort([](auto& a, auto& b){
+		FileSource.StableSort([](auto& a, auto& b) {
 			return *a > *b;
-		});
+			});
 		FileList->RequestListRefresh();
 	};
 
 
-	auto MakeSimulationEvent = [this](int Index){
-		return [this, Index](){
+	auto MakeSimulationEvent = [this](int Index) {
+		return [this, Index]() {
 			auto Reply = FReply::Handled();
-			if (DummyWorld )
+			if (DummyWorld)
 			{
 				DummyWorld->World = MakeShared<ArxWorld>(DummyWorld->UnrealWorld);
 				int FrameId = TextViews[Index].FrameId;
@@ -587,7 +587,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 
 				if (!Replay)
 					return Reply;
-				
+
 				ReplayInfo::PlayerInfo* PlayerInfo = nullptr;
 				for (auto& Item : Replay->PlayerTrackSource)
 				{
@@ -615,7 +615,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 					break;
 				}
 				SimulationTrack.Reserve(FrameId);
-				SimulationTrack.SetNum(Begin + 1,false);
+				SimulationTrack.SetNum(Begin + 1, false);
 
 				for (int i = Begin; i < FrameId; ++i)
 				{
@@ -624,7 +624,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 						ComSys.ReceiveCommands(&Replay->Commands[i].Data);
 
 					DummyWorld->World->Update();
-					
+
 					auto& Data = SimulationTrack.AddDefaulted_GetRef().Data;
 					ArxWriter Writer(Data);
 					DummyWorld->World->Serialize(Writer);
@@ -793,7 +793,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 
 			auto& Data = TextViews[Index].SnapshotData;
 			OutputFile->Serialize(Data.GetData(), Data.Num());
-			
+
 			delete OutputFile;
 			UE_LOG(LogCore, Display, TEXT("save current frame to %s"), *FilePath);
 #endif
@@ -809,14 +809,14 @@ void ArxReplayWindow::Construct(const FArguments&)
 	CustomStyle.SetActiveHoveredBrush(CustomBrush); // selected and hovered
 
 
-	auto MakeTextView = [StylePtr = &CustomStyle,this](FTextView& View){
+	auto MakeTextView = [StylePtr = &CustomStyle, this](FTextView& View) {
 		// frame content
 		SAssignNew(View.Widget, FTextView::ListView).ListItemsSource(&View.Source)
-		.OnGenerateRow_Lambda([StylePtr,this](auto Item, auto& Tab){
+			.OnGenerateRow_Lambda([StylePtr, this](auto Item, auto& Tab) {
 			return SNew(STableRow<FTextView::TextItem>, Tab).Style(GetStyle(Item->State))
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().Padding(0,0,10,0)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot().AutoWidth().Padding(0, 0, 10, 0)
 				[
 					// line number
 					SNew(SBox).WidthOverride(50).HAlign(EHorizontalAlignment::HAlign_Right)
@@ -824,251 +824,251 @@ void ArxReplayWindow::Construct(const FArguments&)
 						SNew(STextBlock).ColorAndOpacity(FLinearColor::White * 0.5).Text(FText::FromString(LexToString(Item->Index)))
 					]
 				]
-				+ SHorizontalBox::Slot()
+			+ SHorizontalBox::Slot()
 				[
 					// text line
 					SNew(STextBlock)
 					.Text(FText::FromString(Item->Content))
 				]
-			];
-		})
-		.OnMouseButtonClick_Lambda([&,this](auto Item){
-			if (&TextViews[0] == &View)
-			{
-				if (TextViews[1].Source.IsValidIndex(Item->Index))
-					TextViews[1].Widget->SetSelection(TextViews[1].Source[Item->Index]);
-				else
-					TextViews[1].Widget->ClearSelection();
-			}
-			else
-			{
-				if (TextViews[0].Source.IsValidIndex(Item->Index))
-					TextViews[0].Widget->SetSelection(TextViews[0].Source[Item->Index]);
-				else
-					TextViews[0].Widget->ClearSelection();
-			}
+				];
+				})
+			.OnMouseButtonClick_Lambda([&, this](auto Item) {
+					if (&TextViews[0] == &View)
+					{
+						if (TextViews[1].Source.IsValidIndex(Item->Index))
+							TextViews[1].Widget->SetSelection(TextViews[1].Source[Item->Index]);
+						else
+							TextViews[1].Widget->ClearSelection();
+					}
+					else
+					{
+						if (TextViews[0].Source.IsValidIndex(Item->Index))
+							TextViews[0].Widget->SetSelection(TextViews[0].Source[Item->Index]);
+						else
+							TextViews[0].Widget->ClearSelection();
+					}
 
-		});
-		
-		return View.Widget.ToSharedRef();
+				});
+
+				return View.Widget.ToSharedRef();
 	};
 
 	ChildSlot
-	[
-		SNew(SBorder)
 		[
-			SNew(SOverlay)
-			+ SOverlay::Slot()
+			SNew(SBorder)
 			[
-				SNew(SVerticalBox).Clipping(EWidgetClipping::ClipToBounds)
-				+ SVerticalBox::Slot().AutoHeight()
-				[
-					// tool bar
-					SNew(SHorizontalBox)
+				SNew(SOverlay)
+				+ SOverlay::Slot()
+		[
+			SNew(SVerticalBox).Clipping(EWidgetClipping::ClipToBounds)
+			+ SVerticalBox::Slot().AutoHeight()
+		[
+			// tool bar
+			SNew(SHorizontalBox)
 #if WITH_EDITOR
-					+ SHorizontalBox::Slot().AutoWidth().Padding(2)
-					[
-						SNew(SButton).Text(FText::FromString(TEXT("Open Directory"))).OnClicked(FOnClicked::CreateLambda([this, RefreshFileList]() {
-							auto Reply = FReply::Handled();
-							if (!FDesktopPlatformModule::Get()->OpenDirectoryDialog(nullptr, TEXT("open directory"),DefaultPath,  Workspace))
-								return Reply;
-							RefreshFileList();
+			+ SHorizontalBox::Slot().AutoWidth().Padding(2)
+		[
+			SNew(SButton).Text(FText::FromString(TEXT("Open Directory"))).OnClicked(FOnClicked::CreateLambda([this, RefreshFileList]() {
+		auto Reply = FReply::Handled();
+		if (!FDesktopPlatformModule::Get()->OpenDirectoryDialog(nullptr, TEXT("open directory"), DefaultPath, Workspace))
+			return Reply;
+		RefreshFileList();
 
-							return Reply;
-						}))
-					]
+		return Reply;
+				}))
+		]
 #endif
-					+ SHorizontalBox::Slot().AutoWidth().Padding(2)
-					[
-						SNew(SButton).Text(FText::FromString(TEXT("Refresh"))).OnClicked(FOnClicked::CreateLambda([this, RefreshFileList](){
-							auto Reply = FReply::Handled();
+	+ SHorizontalBox::Slot().AutoWidth().Padding(2)
+		[
+			SNew(SButton).Text(FText::FromString(TEXT("Refresh"))).OnClicked(FOnClicked::CreateLambda([this, RefreshFileList]() {
+		auto Reply = FReply::Handled();
 
-							RefreshFileList();
+		RefreshFileList();
 
-							return Reply;
-						}))
-					]
+		return Reply;
+				}))
+		]
 
-				]
+		]
 #if WITH_EDITOR
-				+ SVerticalBox::Slot().AutoHeight()
-				[
-					SNew(SButton)
-					.HAlign(EHorizontalAlignment::HAlign_Center)
-					.ButtonColorAndOpacity_Lambda([this](){
-						if (!DummyWorld )
-							return FLinearColor::Red;
-						else
-						{
-							auto PathName = DummyWorld->UnrealWorld->GetOutermost()->GetPathName();
-							auto LevelName = FPaths::GetBaseFilename(PathName);
-							if (LevelName == SelectedLevelName)
-								return FLinearColor::Green;
-							else
-								return FLinearColor::Yellow;
-						}
+	+ SVerticalBox::Slot().AutoHeight()
+		[
+			SNew(SButton)
+			.HAlign(EHorizontalAlignment::HAlign_Center)
+		.ButtonColorAndOpacity_Lambda([this]() {
+		if (!DummyWorld)
+			return FLinearColor::Red;
+		else
+		{
+			auto PathName = DummyWorld->UnrealWorld->GetOutermost()->GetPathName();
+			auto LevelName = FPaths::GetBaseFilename(PathName);
+			if (LevelName == SelectedLevelName)
+				return FLinearColor::Green;
+			else
+				return FLinearColor::Yellow;
+		}
 
-					
+
+			})
+		.OnClicked(FOnClicked::CreateLambda([this]() {
+				auto Reply = FReply::Handled();
+
+				const FVector2D AssetPickerSize(600.0f, 586.0f);
+				auto ActualWidget = SNew(ArxReplayOpenAssetDialog, AssetPickerSize, this);
+
+				auto Parent = FSlateApplication::Get().GetActiveTopLevelWindow();
+				auto Window = SNew(SWindow).MinWidth(586.0f).MinHeight(600.0f)
+					[
+						ActualWidget
+					];
+
+				ActualWidget->OnSelected = [this, Window](UWorld* Package) {
+					InitWorld(Package);
+					FSlateApplication::Get().RequestDestroyWindow(Window);
+				};
+
+				FSlateApplication::Get().AddModalWindow(Window, Parent);
+
+				return Reply;
+			}))
+				.Text_Lambda([this]() {
+				if (!DummyWorld)
+					return FText::FromString(TEXT("Select Map"));
+				else
+					return FText::FromString(DummyWorld->UnrealWorld->GetName());
+
 					})
-					.OnClicked(FOnClicked::CreateLambda([this]() {
-						auto Reply = FReply::Handled();
-
-						const FVector2D AssetPickerSize(600.0f, 586.0f);
-						auto ActualWidget = SNew(ArxReplayOpenAssetDialog, AssetPickerSize, this);
-
-						auto Parent = FSlateApplication::Get().GetActiveTopLevelWindow();
-						auto Window = SNew(SWindow).MinWidth(586.0f).MinHeight(600.0f)
-						[
-							ActualWidget
-						];
-
-						ActualWidget->OnSelected = [this, Window](UWorld* Package) {
-							InitWorld(Package);
-							FSlateApplication::Get().RequestDestroyWindow(Window);
-						};
-
-						FSlateApplication::Get().AddModalWindow(Window, Parent);
-
-						return Reply;
-					}))
-					.Text_Lambda([this]() {
-						if (!DummyWorld )
-							return FText::FromString(TEXT("Select Map"));
-						else
-							return FText::FromString(DummyWorld->UnrealWorld->GetName());
-
-					})
-				]
+		]
 #endif
-				+ SVerticalBox::Slot()
-				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot().Padding(2,2,10,2).AutoWidth()
-					[
-						// file list 
-						SAssignNew(FileList, SListView<FileItem>).ListItemsSource(&FileSource)
-						.OnGenerateRow_Lambda([](auto Item, auto& Tab){
-							return SNew(STableRow<FileItem>, Tab).Padding(2.0f)
-							[
-								SNew(STextBlock).Text(FText::FromString(*Item))
-							];
-						})
-						.OnMouseButtonClick_Lambda([this](auto Item){
-							auto ContentPath = FPaths::Combine(Workspace, *Item);
-							SetContent(ContentPath);
-						})
-					]
-					+ SHorizontalBox::Slot().Padding(2, 2, 10, 2).AutoWidth()
-					[
-						// level list
-						SAssignNew(LevelList, SListView<LevelTrack>).ListItemsSource(&LevelTrackSource)
-						.OnGenerateRow_Lambda([this](auto Item, auto& Tab) {
-							return SNew(STableRow<LevelTrack>, Tab).Padding(2.0f)
-							[
-								SNew(STextBlock).Text(FText::FromString(Item->LevelName)) // level name
-							];
-						})
-						.OnMouseButtonClick_Lambda([this](auto Item) {
-							//InitWorld();
-							if (!DummyWorld)
-								InitWorld();
+	+ SVerticalBox::Slot()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().Padding(2, 2, 10, 2).AutoWidth()
+		[
+			// file list 
+			SAssignNew(FileList, SListView<FileItem>).ListItemsSource(&FileSource)
+			.OnGenerateRow_Lambda([](auto Item, auto& Tab) {
+		return SNew(STableRow<FileItem>, Tab).Padding(2.0f)
+			[
+				SNew(STextBlock).Text(FText::FromString(*Item))
+			];
+				})
+		.OnMouseButtonClick_Lambda([this](auto Item) {
+					auto ContentPath = FPaths::Combine(Workspace, *Item);
+					SetContent(ContentPath);
+			})
+		]
+	+ SHorizontalBox::Slot().Padding(2, 2, 10, 2).AutoWidth()
+		[
+			// level list
+			SAssignNew(LevelList, SListView<LevelTrack>).ListItemsSource(&LevelTrackSource)
+			.OnGenerateRow_Lambda([this](auto Item, auto& Tab) {
+		return SNew(STableRow<LevelTrack>, Tab).Padding(2.0f)
+			[
+				SNew(STextBlock).Text(FText::FromString(Item->LevelName)) // level name
+			];
+				})
+		.OnMouseButtonClick_Lambda([this](auto Item) {
+					//InitWorld();
+					if (!DummyWorld)
+						InitWorld();
 
-							SelectedLevelName = Item->LevelName;
-							SimulationTrack.Reset();
-							TrackWidget->Reset();
-							TrackWidget->AddTrack(TEXT("Commands"), Item->Commands, false);
+					SelectedLevelName = Item->LevelName;
+					SimulationTrack.Reset();
+					TrackWidget->Reset();
+					TrackWidget->AddTrack(TEXT("Commands"), Item->Commands, false);
 
-							for (auto& Player : Item->PlayerTrackSource)
-							{
-								TrackWidget->AddTrack(LexToString(Player.PId), Player.FrameSource,true);
-							}
+					for (auto& Player : Item->PlayerTrackSource)
+					{
+						TrackWidget->AddTrack(LexToString(Player.PId), Player.FrameSource, true);
+					}
 
-							TrackWidget->AddTrack(TEXT("Simulation"), SimulationTrack, false);
-						})
-					]
-					+ SHorizontalBox::Slot().Padding(2)
-					[
-						SNew(SVerticalBox)
-						+ SVerticalBox::Slot().AutoHeight()
-						[
-							// frame track
-							SNew(SBox)
-							.HeightOverride_Lambda([this]()->FOptionalSize {
-								if (TrackWidget)
-									return TrackWidget->GetRequiredHeight();
-								return 200.0f;
-							})
-							[
-								SAssignNew(TrackWidget,ArxReplayFrameTrack)
-							]
-						]
-						+ SVerticalBox::Slot().FillHeight(1.0f)
-						[
-							SNew(SVerticalBox)
-							+ SVerticalBox::Slot().AutoHeight()
-							[
-								// frame tool
-								SNew(SHorizontalBox)
-								+ SHorizontalBox::Slot()
-								[
-									SNew(SHorizontalBox)
-									+ SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeSimulationEvent(0))]
-									+ SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent(0))]
-									+ SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(0))]
-									+ SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Save as Binary")).OnClicked_Lambda(MakeSaveEvent(0))]
+					TrackWidget->AddTrack(TEXT("Simulation"), SimulationTrack, false);
+			})
+		]
+	+ SHorizontalBox::Slot().Padding(2)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot().AutoHeight()
+		[
+			// frame track
+			SNew(SBox)
+			.HeightOverride_Lambda([this]()->FOptionalSize {
+		if (TrackWidget)
+			return TrackWidget->GetRequiredHeight();
+		return 200.0f;
+				})
+		[
+			SAssignNew(TrackWidget, ArxReplayFrameTrack)
+		]
+		]
+	+ SVerticalBox::Slot().FillHeight(1.0f)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot().AutoHeight()
+		[
+			// frame tool
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth()
+		[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeSimulationEvent(0))]
+	+ SHorizontalBox::Slot().AutoWidth()
+		[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent(0))]
+	+ SHorizontalBox::Slot().AutoWidth()
+		[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(0))]
+	+ SHorizontalBox::Slot().AutoWidth()
+		[SNew(SButton).Text(FText::FromString("Save as Binary")).OnClicked_Lambda(MakeSaveEvent(0))]
 
-								]
-								+ SHorizontalBox::Slot()
-								[
-									SNew(SHorizontalBox)
-									+ SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeSimulationEvent(1))]
-									+ SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent(0))]
-									+ SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(1))]
-                                    + SHorizontalBox::Slot().AutoWidth()
-									[SNew(SButton).Text(FText::FromString("Save as Binary")).OnClicked_Lambda(MakeSaveEvent(1))]
-								]
-							]
-							+ SVerticalBox::Slot()
-							[
-								// frame viewr
-								SNew(SBorder)
-								[
-									SNew(SScrollBox)
-									+ SScrollBox::Slot()
-									[
-										SNew(SHorizontalBox)
-										+ SHorizontalBox::Slot().FillWidth(0.5)
-										[
-											MakeTextView(TextViews[0])
-										]
-										+ SHorizontalBox::Slot().FillWidth(0.5)
-										[
-											MakeTextView(TextViews[1])
-										]
-									]
-								]
-							]
-
-						]
-
-					]
-				]
+		]
+	+ SHorizontalBox::Slot()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth()
+		[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeSimulationEvent(1))]
+	+ SHorizontalBox::Slot().AutoWidth()
+		[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent(0))]
+	+ SHorizontalBox::Slot().AutoWidth()
+		[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(1))]
+	+ SHorizontalBox::Slot().AutoWidth()
+		[SNew(SButton).Text(FText::FromString("Save as Binary")).OnClicked_Lambda(MakeSaveEvent(1))]
+		]
+		]
+	+ SVerticalBox::Slot()
+		[
+			// frame viewr
+			SNew(SBorder)
+			[
+				SNew(SScrollBox)
+				+ SScrollBox::Slot()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().FillWidth(0.5)
+		[
+			MakeTextView(TextViews[0])
+		]
+	+ SHorizontalBox::Slot().FillWidth(0.5)
+		[
+			MakeTextView(TextViews[1])
+		]
+		]
 			]
 		]
-	];
 
-	TrackWidget->SetFrameListener([this](auto Getter, auto& Name, auto& Frame, int Index){
+		]
+
+		]
+		]
+		]
+			]
+		];
+
+	TrackWidget->SetFrameListener([this](auto Getter, auto& Name, auto& Frame, int Index) {
 
 		if (Name == TEXT("Commands"))
 		{
-			ArxCommandSystem Sys(*DummyWorld->World,1);
+			ArxCommandSystem Sys(*DummyWorld->World, 1);
 			Sys.Initialize(false);
 			auto Content = Sys.DumpCommands(Frame.Data);
 			TArray<uint8> Data;
@@ -1099,15 +1099,15 @@ void ArxReplayWindow::Construct(const FArguments&)
 
 			auto StdFrame = Getter(Frame.FrameId + 1, [](auto& Name, auto& Frame) {
 				return Name != TEXT("Commands") && Frame.State == FReplayFrame::E_NORMAL;
-			});
+				});
 
 
-			auto Cmds = Getter( Frame.FrameId, [](auto& Name, auto& Frame){
+			auto Cmds = Getter(Frame.FrameId, [](auto& Name, auto& Frame) {
 				return Name == TEXT("Commands");
-			});
+				});
 
 
-			auto ResetItem = [](auto& Item, auto State){
+			auto ResetItem = [](auto& Item, auto State) {
 				if (Item->State == State)
 					return;
 
@@ -1115,17 +1115,17 @@ void ArxReplayWindow::Construct(const FArguments&)
 				Item->State = State;
 			};
 
-			for (int i = 0; ;++i )
+			for (int i = 0; ; ++i)
 			{
 				if (i >= TextViews[0].Source.Num())
 				{
-					for (int j = i; j < TextViews[1].Source.Num();++j)
+					for (int j = i; j < TextViews[1].Source.Num(); ++j)
 					{
 						TextViews[1].Source[j]->State = FTextView::FLine::E_DIFF;
 					}
 					break;
 				}
-				else if ( i >= TextViews[1].Source.Num())
+				else if (i >= TextViews[1].Source.Num())
 				{
 					for (int j = i; j < TextViews[1].Source.Num(); ++j)
 					{
@@ -1154,13 +1154,13 @@ void ArxReplayWindow::Construct(const FArguments&)
 				Item.Widget->RequestListRefresh();
 			}
 		}
-	});
+		});
 
 	RefreshFileList();
 
 }
 
-void ArxReplayWindow::SetContent(const FString& ParentPath) 
+void ArxReplayWindow::SetContent(const FString& ParentPath)
 {
 	SimulationTrack.Reset();
 	TrackWidget->Reset();
@@ -1182,16 +1182,16 @@ void ArxReplayWindow::SetContent(const FString& ParentPath)
 		if (CmdFile)
 		{
 
-			while(!CmdFile->AtEnd())
+			while (!CmdFile->AtEnd())
 			{
 				int FrameId, Len;
-				(*CmdFile) << FrameId  << Len;
+				(*CmdFile) << FrameId << Len;
 
 				TArray<uint8> Data;
 				Data.SetNumUninitialized(Len);
 				CmdFile->Serialize((void*)Data.GetData(), Len);
 
-				while(Track->Commands.Num() < FrameId)
+				while (Track->Commands.Num() < FrameId)
 				{
 					Track->Commands.AddDefaulted();
 				}
@@ -1199,7 +1199,7 @@ void ArxReplayWindow::SetContent(const FString& ParentPath)
 				auto& Frame = Track->Commands.AddDefaulted_GetRef();
 				Frame.Data = MoveTemp(Data);
 				Frame.FrameId = FrameId;
-				Frame.State = Frame.Data.Num() == 0 ? FReplayFrame::E_UNKNOWN: FReplayFrame::E_NORMAL;
+				Frame.State = Frame.Data.Num() == 0 ? FReplayFrame::E_UNKNOWN : FReplayFrame::E_NORMAL;
 			}
 			delete CmdFile;
 
@@ -1210,23 +1210,23 @@ void ArxReplayWindow::SetContent(const FString& ParentPath)
 		// get snapshots
 		auto SnapshotPath = FPaths::Combine(Name, TEXT("Snapshots/Remote"));
 
-		FileMgr.IterateDirectory(*SnapshotPath, [&](auto Name, bool bDir){
+		FileMgr.IterateDirectory(*SnapshotPath, [&](auto Name, bool bDir) {
 			if (bDir)
 				return true;
 			auto PlayerIdStr = FPaths::GetBaseFilename(Name);
 
 			auto& Player = Track->PlayerTrackSource.AddDefaulted_GetRef();
-				
+
 			Player.PId = NON_PLAYER_CONTROL;
 			Player.bCompared = true;
 			LexFromString(Player.PId, *PlayerIdStr);
 			auto File = TSharedPtr<FArchive>(FileMgr.CreateFileReader(Name, FILEREAD_AllowWrite));
 			check(File)
-			auto Total = File->TotalSize();
+				auto Total = File->TotalSize();
 			if (Total <= 8) // id + num
 				return true;
 
-			while(!File->AtEnd())
+			while (!File->AtEnd())
 			{
 				int FrameId, Num;
 				bool bDiscard;
@@ -1236,20 +1236,20 @@ void ArxReplayWindow::SetContent(const FString& ParentPath)
 				Data.SetNumUninitialized(Num);
 				File->Serialize(Data.GetData(), Num);
 				check(FrameId >= Player.FrameSource.Num())
-				while (FrameId - 1 >= Player.FrameSource.Num())
-				{
-					auto& Frame = Player.FrameSource.AddDefaulted_GetRef();
-					Frame.FrameId = Player.FrameSource.Num() - 1;
-				}	
+					while (FrameId - 1 >= Player.FrameSource.Num())
+					{
+						auto& Frame = Player.FrameSource.AddDefaulted_GetRef();
+						Frame.FrameId = Player.FrameSource.Num() - 1;
+					}
 				auto& Frame = Player.FrameSource.AddDefaulted_GetRef();
 				Frame.FrameId = FrameId;
 				Frame.Data = MoveTemp(Data);
 				Frame.Hash = Hash;
 			}
 			return true;
-		});
+			});
 
-		for (int FrameId = 0; ;FrameId++)
+		for (int FrameId = 0; ; FrameId++)
 		{
 			TMap<uint32, int> CompareList;
 			bool bBreak = true;
@@ -1300,7 +1300,7 @@ void ArxReplayWindow::SetContent(const FString& ParentPath)
 		}
 
 		return true;
-	});
+		});
 
 	LevelList->RequestListRefresh();
 }
@@ -1318,7 +1318,15 @@ ArxReplayWindow::FDummyWorld::FDummyWorld(UWorld* InWorld)
 			UnrealWorld->WorldType = EWorldType::Editor;
 			UnrealWorld->ClearWorldComponents();
 			UnrealWorld->InitializeSubsystems();
+			bNeedDestroy = true;
 		}
+#if ENGINE_MAJOR_VERSION >= 5
+		else if (!InWorld->HasEverBeenInitialized())
+		{
+			InWorld->InitWorld();
+			bNeedDestroy = true;
+		}
+#endif
 	}
 	else
 	{
@@ -1327,7 +1335,10 @@ ArxReplayWindow::FDummyWorld::FDummyWorld(UWorld* InWorld)
 		if (CurWorld->WorldType == EWorldType::Game)
 			UnrealWorld = CurWorld;
 		else
-			UnrealWorld = UWorld::CreateWorld(EWorldType::Editor, false, TEXT("ArxDummyWorld"), GetTransientPackage(),false);
+		{
+			UnrealWorld = UWorld::CreateWorld(EWorldType::Editor, false, TEXT("ArxDummyWorld"), GetTransientPackage(), false);
+			bNeedDestroy = true;
+		}
 
 	}
 	check(UnrealWorld);
@@ -1339,7 +1350,7 @@ void ArxReplayWindow::FDummyWorld::Reset()
 	World.Reset();
 	if (UnrealWorld)
 	{
-		if (UnrealWorld->GetOuter() == GetTransientPackage())
+		if (bNeedDestroy)
 			UnrealWorld->DestroyWorld(false);
 		UnrealWorld = nullptr;
 	}
@@ -1372,12 +1383,12 @@ void ArxReplayWindow::FTextView::Refresh(const TArray<uint8>& Data)
 		TCHAR* End = (TCHAR*)(Data.GetData() + Data.Num());
 
 		FString Content(Data.Num() / sizeof(TCHAR), (TCHAR*)Data.GetData());
-		TArray<FString> Lines ;
-		Content.ParseIntoArrayLines(Lines,false);
+		TArray<FString> Lines;
+		Content.ParseIntoArrayLines(Lines, false);
 		Source.Reserve(Lines.Num());
 
 		int Index = 0;
-		for (auto& Line: Lines)
+		for (auto& Line : Lines)
 		{
 			FTextView::FLine Item = { MoveTemp(Line), 0,Index++ };
 			Source.Add(MakeShared<FTextView::FLine>(MoveTemp(Item)));
@@ -1408,19 +1419,19 @@ void ArxReplayOpenAssetDialog::Construct(const FArguments& InArgs, FVector2D InS
 	AssetPickerConfig.Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
 #endif
 	ChildSlot
-	[
-		SNew(SBox)
-		.WidthOverride(InSize.X)
+		[
+			SNew(SBox)
+			.WidthOverride(InSize.X)
 		.HeightOverride(InSize.Y)
 		[
 			SNew(SVerticalBox)
 			+ SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			[
-				ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
-			]
+		.FillHeight(1.0f)
+		[
+			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
 		]
-	];
+		]
+		];
 #endif
 }
 
@@ -1438,6 +1449,9 @@ FReply ArxReplayOpenAssetDialog::OnPreviewKeyDown(const FGeometry& MyGeometry, c
 
 void ArxReplayOpenAssetDialog::OnAssetSelectedFromPicker(const FAssetData& AssetData)
 {
+#if ENGINE_MAJOR_VERSION >=5 
+	UWorld::WorldTypePreLoadMap.Add(AssetData.PackageName, EWorldType::Editor);
+#endif
 	auto World = Cast<UWorld>(AssetData.GetAsset());
 	check(World);
 	if (OnSelected)
@@ -1446,12 +1460,9 @@ void ArxReplayOpenAssetDialog::OnAssetSelectedFromPicker(const FAssetData& Asset
 
 void ArxReplayOpenAssetDialog::OnPressedEnterOnAssetsInPicker(const TArray<FAssetData>& SelectedAssets)
 {
-	for (auto& AssetData: SelectedAssets)
+	for (auto& AssetData : SelectedAssets)
 	{
-		auto World = Cast<UWorld>(AssetData.GetAsset());
-		check(World);
-		if (OnSelected)
-			OnSelected(World);
+		OnAssetSelectedFromPicker(AssetData);
 
 		return;
 	}

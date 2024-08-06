@@ -16,7 +16,7 @@ public:
     virtual void Serialize(ArxSerializer& Serializer) override;
     virtual void Update() override;
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
-    FString FGCObject::GetReferencerName(void) const{return TEXT("ArxPhysicsSystem"); }
+    FString GetReferencerName(void) const{return TEXT("ArxPhysicsSystem"); }
 
     URp3dRigidBody* CreateRigidBody();
 private:

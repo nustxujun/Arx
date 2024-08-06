@@ -172,6 +172,7 @@ private:
     {
         UWorld* UnrealWorld = nullptr;
         TSharedPtr<ArxWorld> World ;
+        bool bNeedDestroy = false;
         FDummyWorld(UWorld* InWorld);
         ~FDummyWorld();
 
