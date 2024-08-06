@@ -40,9 +40,9 @@ void UArxSmoothMoveComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 			auto Alpha = TotalTime / Interval;
 
 			auto Pos = FMath::Lerp(T1.GetLocation(), T2.GetLocation(), Alpha);
-			//auto Rot = FMath::Lerp(T1.GetRotation(), T2.GetRotation(), Alpha);
-			//GetOwner()->SetActorLocationAndRotation(Pos, Rot.Rotator());
-			GetOwner()->SetActorLocation(Pos);
+			auto Rot = FMath::Lerp(T1.GetRotation(), T2.GetRotation(), Alpha);
+			GetOwner()->SetActorLocationAndRotation(Pos, Rot.Rotator());
+			//GetOwner()->SetActorLocation(Pos);
 			return;
 		}
 		TotalTime -= Interval;
@@ -50,8 +50,8 @@ void UArxSmoothMoveComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	}
 	
 	{
-		//GetOwner()->SetActorLocationAndRotation(Transforms[0].GetLocation(), Transforms[0].GetRotation().Rotator());
-		GetOwner()->SetActorLocation(Transforms[0].GetLocation());
+		GetOwner()->SetActorLocationAndRotation(Transforms[0].GetLocation(), Transforms[0].GetRotation().Rotator());
+		//GetOwner()->SetActorLocation(Transforms[0].GetLocation());
 
 		TotalTime = 0;
 		return;

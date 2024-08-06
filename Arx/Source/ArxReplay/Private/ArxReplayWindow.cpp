@@ -832,7 +832,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 				]
 			];
 		})
-		.OnMouseButtonClick_Lambda([&,this](auto& Item){
+		.OnMouseButtonClick_Lambda([&,this](auto Item){
 			if (&TextViews[0] == &View)
 			{
 				if (TextViews[1].Source.IsValidIndex(Item->Index))
@@ -953,7 +953,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 								SNew(STextBlock).Text(FText::FromString(*Item))
 							];
 						})
-						.OnMouseButtonClick_Lambda([this](auto& Item){
+						.OnMouseButtonClick_Lambda([this](auto Item){
 							auto ContentPath = FPaths::Combine(Workspace, *Item);
 							SetContent(ContentPath);
 						})
@@ -968,7 +968,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 								SNew(STextBlock).Text(FText::FromString(Item->LevelName)) // level name
 							];
 						})
-						.OnMouseButtonClick_Lambda([this](auto& Item) {
+						.OnMouseButtonClick_Lambda([this](auto Item) {
 							//InitWorld();
 							if (!DummyWorld)
 								InitWorld();
