@@ -44,7 +44,9 @@ private:
     TRandomArray<TArray<uint8>> VerifiedSnapshots;
     TRandomArray<uint32> VerifiedHashs;
     TMap<ArxPlayerId, ArxServerPlayer*> Players;
-
+#if ENGINE_MAJOR_VERSION >= 5
+    FTSTicker::
+#endif
     FDelegateHandle TickHandle;
     ArxPlayerId UniquePlayerId = 0;
     int CurrentFrame = 0;

@@ -5,6 +5,13 @@
 
 DECLARE_CYCLE_STAT(TEXT("Arx Server Tick"), STAT_ArxServerTick, STATGROUP_ArxGroup);
 
+#if ENGINE_MAJOR_VERSION >= 5
+using UETicker = FTSTicker;
+#else
+using UETicker = FTicker;
+#endif
+
+
 UArxServerSubsystem& UArxServerSubsystem::Get(UWorld* World)
 {
 	return *World->GetSubsystem<UArxServerSubsystem>();
@@ -22,7 +29,7 @@ void UArxServerSubsystem::Deinitialize()
 
 	Frames.Reset();
 	if (TickHandle.IsValid())
-		FTicker::GetCoreTicker().RemoveTicker(TickHandle);
+		UETicker::GetCoreTicker().RemoveTicker(TickHandle);
 }
 
 void UArxServerSubsystem::Start(float Interval)
@@ -30,7 +37,7 @@ void UArxServerSubsystem::Start(float Interval)
 	if (TickHandle.IsValid())
 		return ;
 
-	TickHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([this, Interval](auto DeltaTime) {
+	TickHandle = UETicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([this, Interval](auto DeltaTime) {
 		SCOPE_CYCLE_COUNTER(STAT_ArxServerTick);
 
 		TotalTime += DeltaTime;
