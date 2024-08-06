@@ -812,7 +812,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 	auto MakeTextView = [StylePtr = &CustomStyle,this](FTextView& View){
 		// frame content
 		SAssignNew(View.Widget, FTextView::ListView).ListItemsSource(&View.Source)
-		.OnGenerateRow_Lambda([StylePtr,this](auto& Item, auto& Tab){
+		.OnGenerateRow_Lambda([StylePtr,this](auto Item, auto& Tab){
 			return SNew(STableRow<FTextView::TextItem>, Tab).Style(GetStyle(Item->State))
 			[
 				SNew(SHorizontalBox)
@@ -947,7 +947,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 					[
 						// file list 
 						SAssignNew(FileList, SListView<FileItem>).ListItemsSource(&FileSource)
-						.OnGenerateRow_Lambda([](auto& Item, auto& Tab){
+						.OnGenerateRow_Lambda([](auto Item, auto& Tab){
 							return SNew(STableRow<FileItem>, Tab).Padding(2.0f)
 							[
 								SNew(STextBlock).Text(FText::FromString(*Item))
@@ -962,7 +962,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 					[
 						// level list
 						SAssignNew(LevelList, SListView<LevelTrack>).ListItemsSource(&LevelTrackSource)
-						.OnGenerateRow_Lambda([this](auto& Item, auto& Tab) {
+						.OnGenerateRow_Lambda([this](auto Item, auto& Tab) {
 							return SNew(STableRow<LevelTrack>, Tab).Padding(2.0f)
 							[
 								SNew(STextBlock).Text(FText::FromString(Item->LevelName)) // level name
