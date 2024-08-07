@@ -614,16 +614,13 @@ void ArxReplayWindow::Construct(const FArguments&)
 					DummyWorld->Serialize(Reader);
 					break;
 				}
-				SimulationTrack.Reserve(FrameId);
-				SimulationTrack.SetNum(Begin + 1, false);
+				SimulationTrack.Reset();
+				SimulationTrack.Reserve(FrameId + 1);
+				SimulationTrack.SetNum(Begin , false);
 
-				for (int i = Begin; i < FrameId; ++i)
+				for (int i = Begin; i <= FrameId; ++i)
 				{
-					auto& ComSys = DummyWorld->World->GetSystem<ArxCommandSystem>();
-					if (i < Replay->Commands.Num())
-						ComSys.ReceiveCommands(&Replay->Commands[i].Data);
 
-					DummyWorld->World->Update();
 
 					auto& Data = SimulationTrack.AddDefaulted_GetRef().Data;
 					ArxWriter Writer(Data);
@@ -634,9 +631,9 @@ void ArxReplayWindow::Construct(const FArguments&)
 					auto NextFrameId = i + 1;
 					for (auto& Item : Replay->PlayerTrackSource)
 					{
-						if (Item.FrameSource.IsValidIndex(NextFrameId))
+						if (Item.FrameSource.IsValidIndex(i))
 						{
-							auto& Frame = Item.FrameSource[NextFrameId];
+							auto& Frame = Item.FrameSource[i];
 							if (Frame.Hash == 0)
 								continue;
 							else if (Frame.Hash == Hash)
@@ -650,8 +647,14 @@ void ArxReplayWindow::Construct(const FArguments&)
 							}
 						}
 					}
-					SimulationTrack[NextFrameId].State = State;
-					SimulationTrack[NextFrameId].FrameId = NextFrameId;
+					SimulationTrack[i].State = State;
+					SimulationTrack[i].FrameId = i;
+
+					auto& ComSys = DummyWorld->World->GetSystem<ArxCommandSystem>();
+					if (i < Replay->Commands.Num())
+						ComSys.ReceiveCommands(&Replay->Commands[i].Data);
+
+					DummyWorld->World->Update();
 				}
 
 			}
@@ -853,6 +856,45 @@ void ArxReplayWindow::Construct(const FArguments&)
 				return View.Widget.ToSharedRef();
 	};
 
+	auto MakeText = [this](int Index){
+		return 
+		[this, Index](){
+			int FrameId = TextViews[Index].FrameId;
+			auto PId = TextViews[Index].PlayerId;
+
+			ReplayInfo* Replay = nullptr;
+			for (auto& Item : LevelTrackSource)
+			{
+				if (Item->LevelName == SelectedLevelName)
+				{
+					Replay = Item.Get();
+				}
+			}
+
+			if (!Replay)
+				return FText();
+
+			TArray<FReplayFrame>* Frames = nullptr;
+			for (auto& Item : Replay->PlayerTrackSource)
+			{
+				if (Item.PId == PId)
+				{
+					Frames = &Item.FrameSource;
+				}
+			}
+
+			if (PId == -1)
+			{
+				Frames = &Replay->Commands;
+			}
+
+			if (!Frames || !Frames->IsValidIndex(FrameId))
+				return FText();
+
+		
+			return FText::FromString(FString::Printf(TEXT("%x"), (*Frames)[FrameId].Hash));
+		};
+	};
 	ChildSlot
 		[
 			SNew(SBorder)
@@ -1013,6 +1055,8 @@ void ArxReplayWindow::Construct(const FArguments&)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth()
+			[SNew(STextBlock).Text_Lambda(MakeText(0))]
+			+ SHorizontalBox::Slot().AutoWidth()
 		[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeSimulationEvent(0))]
 	+ SHorizontalBox::Slot().AutoWidth()
 		[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent(0))]
@@ -1025,6 +1069,8 @@ void ArxReplayWindow::Construct(const FArguments&)
 	+ SHorizontalBox::Slot()
 		[
 			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth()
+		[SNew(STextBlock).Text_Lambda(MakeText(1))]
 			+ SHorizontalBox::Slot().AutoWidth()
 		[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeSimulationEvent(1))]
 	+ SHorizontalBox::Slot().AutoWidth()
@@ -1159,6 +1205,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 	RefreshFileList();
 
 }
+#pragma optimize("",on)
 
 void ArxReplayWindow::SetContent(const FString& ParentPath)
 {
@@ -1244,6 +1291,9 @@ void ArxReplayWindow::SetContent(const FString& ParentPath)
 				auto& Frame = Player.FrameSource.AddDefaulted_GetRef();
 				Frame.FrameId = FrameId;
 				Frame.Data = MoveTemp(Data);
+
+				check(Hash == FCrc::MemCrc32(Frame.Data.GetData(),Frame.Data.Num()));
+
 				Frame.Hash = Hash;
 			}
 			return true;

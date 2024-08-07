@@ -17,13 +17,31 @@ void ArxPhysicsSystem::Initialize(bool bIsReplicated)
 	PhysicsWorld->Initialize(Settings);
 	PhysicsWorld->EnableDebugDraw(true);
 
+	TArray<AActor*> List;
 	for (TActorIterator<AActor> Iter(World); Iter; ++Iter)
 	{
-		auto Comp = Iter->FindComponentByClass<URp3dShapeComponent>();
+		auto Actor = *Iter;
+		auto Root = Actor->GetRootComponent();
+		if (!Root )
+			continue;
+
+
+		auto Comp = Actor->FindComponentByClass<URp3dShapeComponent>();
 		if (Comp)
-			Comp->OnCreateRp3dState(PhysicsWorld);
+		{
+			check(Root->Mobility == EComponentMobility::Static);
+			List.Add(*Iter);
+		}
 	}
-	
+
+	List.StableSort([](const AActor& A, const AActor& B) 
+	{
+		return A.GetFullName() < B.GetFullName();
+	});
+	for (auto A : List)
+	{
+		A->FindComponentByClass<URp3dShapeComponent>()->OnCreateRp3dState(PhysicsWorld);
+	}
 }
 
 void ArxPhysicsSystem::Uninitialize(bool bIsReplicated)
