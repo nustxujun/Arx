@@ -32,8 +32,6 @@ public class ArxReplay : ModuleRules
 				"SlateCore",
 				"InputCore",
 
-				"ApplicationCore",
-				"EditorStyle",
 			}
             );
 
@@ -46,7 +44,9 @@ public class ArxReplay : ModuleRules
 					"UnrealEd",
 					"ToolMenus",
 					"Projects",
-                    "DesktopPlatform"
+                    "DesktopPlatform",
+					"ApplicationCore",
+					"EditorStyle"
                 });
         }
 
