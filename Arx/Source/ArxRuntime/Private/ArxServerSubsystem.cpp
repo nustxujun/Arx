@@ -220,18 +220,46 @@ bool UArxServerSubsystem::HasCommands(int FrameId)
 
 ArxPlayerId UArxServerSubsystem::RegisterPlayer(ArxServerPlayer* Player)
 {
-	auto Id = UniquePlayerId++;
-	Players.Add(Id, Player);
+	auto PId = UniquePlayerId++;
+	Players.Add(PId, Player);
 
+	AddServerCommand(ArxServerEvent::PLAYER_ENTER, PId);
 
-	AddServerCommand(ArxServerEvent::PLAYER_ENTER, Id);
-	return Id;
+	Player->ResponseRegister(PId);
+
+	auto FrameId = GetCurrentFrame();
+	Player->SyncStep(FrameId);
+
+	// prepare all commands
+	auto CurrentFrameId = GetCurrentFrame();
+	for (int i = 0; i < CurrentFrameId; ++i)
+	{
+		auto& Cmds = GetCommands(i);
+		Player->ResponseCommand(i, Cmds);
+	}
+
+	if (bStartFromSnapshot)
+	{
+		// start from snapshot
+		auto LatestVerifiedFrame = GetLatestVerifiedFrame();
+		auto& Snapshot = GetSnapshot(LatestVerifiedFrame);
+		if (Snapshot.Num() != 0)
+		{
+			Player->ResponseSnapshot(LatestVerifiedFrame, Snapshot);
+			Player->ResponseVerifiedFrame(LatestVerifiedFrame);
+		}
+	}
+
+	// go start player
+	Player->SyncStart();
+
+	return PId;
 }
 
 void UArxServerSubsystem::UnregisterPlayer(ArxPlayerId Id)
 {
 	AddServerCommand(ArxServerEvent::PLAYER_LEAVE, Id);
-
+	Players[Id]->ResponseUnregister();
 	Players.Remove(Id);
 }
 

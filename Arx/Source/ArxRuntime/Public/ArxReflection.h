@@ -78,7 +78,7 @@ namespace Arx
 #define REFLECT_BEGIN()
 
 #define REFLECT_FIELD(TYPE, NAME) \
-TYPE NAME;\
+TYPE NAME = {};\
 template <size_t, class> struct FieldReflection;\
 template <class T> struct FieldReflection<Arx::FieldIndex<struct FieldTag_##NAME,FieldReflection>::Index, T> {\
     using Type = TYPE;\

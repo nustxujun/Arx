@@ -2,14 +2,15 @@
 #include "ArxWorld.h"
 
 
-const auto CompairTimer = [](const auto& a, const auto& b) {return a->Key < b->Key;};
+
+const auto CompairTimer = [](const auto& a, const auto& b) {return a.Key < b.Key;};
 
 int ArxTimerSystem::AddTimer(ArxEntityId InEntityId, ArxTimeDuration Delay, ArxTimeDuration Interval , ArxTimeDuration Duration)
 {
     FTimer Timer = {Interval, Duration == 0 ? 0 : TotalTime + Duration , InEntityId,++TotalTimerCount};
     if (Delay != 0)
     {
-        DelayedTimers.HeapPush( MakeUnique<TPair<ArxTimePoint, FTimer>>( TotalTime + Delay,Timer), CompairTimer);
+        DelayedTimers.HeapPush(TPair<ArxTimePoint, FTimer>( TotalTime + Delay,Timer), CompairTimer);
     }
     else
     {
@@ -31,7 +32,7 @@ void ArxTimerSystem::Update()
     TotalTime += ArxConstants::TimeStep;
     while (DelayedTimers.Num() > 0)
     {
-        auto& Timer = *DelayedTimers.HeapTop();
+        auto& Timer = DelayedTimers.HeapTop();
         if (TotalTime < Timer.Key)
             break;
 
@@ -74,7 +75,7 @@ void ArxTimerSystem::Update()
         const auto Count = DelayedTimers.Num();
         for (int i = 0; i < Count; ++i)
         {
-            auto& Timer = *DelayedTimers[i];
+            auto& Timer = DelayedTimers[i];
             if (Timer.Value.Id != Id)
                 continue;
 
@@ -100,110 +101,8 @@ void ArxTimerSystem::Serialize(ArxSerializer& Serializer)
 {
     ARX_SERIALIZE_MEMBER_FAST(TotalTimerCount)
     ARX_SERIALIZE_MEMBER_FAST(TotalTime)
-    
-    if (Serializer.IsSaving())
-    {
-        int RepeatedTimerCount = RepeatedTimers.Num();
-        Serializer << RepeatedTimerCount;
-        for (auto& Item: RepeatedTimers)
-        {
-            Serializer << Item.Key;
-            Serializer << Item.Value.Begin;
-            int TimerCount = Item.Value.Timers.Num();
-            Serializer << TimerCount;
-            for (auto& Timer : Item.Value.Timers)
-            {
-                Serializer << Timer.Value;
-            }
-        }
-
-
-        int DelayedTimerCount = DelayedTimers.Num();
-        Serializer << DelayedTimerCount;
-        for (auto& Item : DelayedTimers)
-        {
-            Serializer << Item->Key;
-            Serializer << Item->Value;
-        }
-
-        int RemovedTimerCount = RemoveList.Num();
-        Serializer << RemovedTimerCount;
-        for (auto Id : RemoveList)
-        {
-            Serializer << Id;
-        }
-
-        int MapCount = TimerMap.Num();
-        Serializer << MapCount;
-        for (auto& Item : TimerMap)
-        {
-            Serializer << Item.Key;
-            Serializer << Item.Value;
-
-        }
-    }
-    else
-    {
-        RepeatedTimers.Reset();
-        DelayedTimers.Reset();
-        RemoveList.Reset();
-        TimerMap.Reset();
-
-        {
-            int Count ;
-            Serializer << Count;
-            for (int i = 0; i < Count; ++i)
-            {
-                ArxTimeDuration Duration;
-                Serializer << Duration;
-                FTimerList List;
-                Serializer << List.Begin;
-
-                int TimerCount;
-                Serializer << TimerCount;
-                for (int j = 0; j < TimerCount; ++j)
-                {
-                    FTimer Timer;
-                    Serializer << Timer;
-                    List.Timers.Add(Timer.Id, Timer);
-                }
-
-                RepeatedTimers.Add(Duration, MoveTemp(List));
-            }
-        }
-        {
-            int Count;
-            Serializer << Count;
-            for (int i = 0; i < Count; ++i)
-            {
-                FTimer Timer;
-                ArxTimePoint Begin;
-                Serializer << Begin;
-                Serializer << Timer;
-
-                DelayedTimers.Add(MakeUnique<TPair<ArxTimePoint, FTimer>>(Begin, Timer));
-            }
-        }
-        {
-            int Count;
-            Serializer << Count;
-            for (int i = 0; i < Count; ++i)
-            {
-                int Id;
-                Serializer << Id;
-                RemoveList.Add(Id);
-            }
-        }
-        {
-            int Count ;
-            Serializer << Count;
-            for (int i = 0; i < Count; ++i)
-            {
-                int Id;
-                ArxTimeDuration Dur;
-                Serializer << Id << Dur;
-                TimerMap.Add(Id,Dur);
-            }
-        }
-    }
+    ARX_SERIALIZE_MEMBER_FAST(RepeatedTimers);
+    ARX_SERIALIZE_MEMBER_FAST(DelayedTimers);
+    ARX_SERIALIZE_MEMBER_FAST(RemoveList);
+    ARX_SERIALIZE_MEMBER_FAST(TimerMap);
 }

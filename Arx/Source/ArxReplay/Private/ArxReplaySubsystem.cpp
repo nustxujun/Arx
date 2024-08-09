@@ -5,8 +5,12 @@
 
 bool UArxReplaySubsystem::ShouldCreateSubsystem(UObject* Outer)const
 {
+#if WITH_SERVER_CODE
 	auto Type = Cast<UWorld>(Outer)->WorldType;
 	return Type == EWorldType::Game || Type == EWorldType::PIE;
+#else
+	return false;
+#endif
 }
 
 bool UArxReplaySubsystem::IsServer()
@@ -20,7 +24,7 @@ void UArxReplaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	CommandHandle = ArxDelegates::OnServerCommands.AddUObject(this, &UArxReplaySubsystem::OnCommands);
 	SnapshotHandle = ArxDelegates::OnClientSnapshot.AddUObject(this, &UArxReplaySubsystem::OnSnapshot);
-	LocalSnapshotHandle = ArxDelegates::OnClientWorldStep.AddUObject(this, &UArxReplaySubsystem::OnLocalSnapshot);
+	//LocalSnapshotHandle = ArxDelegates::OnClientWorldStep.AddUObject(this, &UArxReplaySubsystem::OnLocalSnapshot);
 
 }
 

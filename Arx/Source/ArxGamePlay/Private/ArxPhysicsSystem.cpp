@@ -46,6 +46,7 @@ void ArxPhysicsSystem::Initialize(bool bIsReplicated)
 
 void ArxPhysicsSystem::Uninitialize(bool bIsReplicated)
 {
+	PhysicsWorld->MarkPendingKill();
 	PhysicsWorld = 0;
 }
 

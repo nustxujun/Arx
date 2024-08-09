@@ -6,7 +6,7 @@
 
 DECLARE_CYCLE_STAT(TEXT("Verify Frame"), STAT_VerifyFrame, STATGROUP_ArxGroup);
 DECLARE_CYCLE_STAT(TEXT("Process Commands"), STAT_ProcessCommands, STATGROUP_ArxGroup);
-DECLARE_CYCLE_STAT(TEXT("Recover from snapshot"), STAT_Reocver, STATGROUP_ArxGroup);
+DECLARE_CYCLE_STAT(TEXT("Recover from snapshot"), STAT_Recover, STATGROUP_ArxGroup);
 
 ArxClientPlayer::ArxClientPlayer(UWorld* InWorld, int InVerificationCycle):World(InWorld),VerificationCycle(InVerificationCycle)
 {
@@ -44,7 +44,7 @@ void ArxClientPlayer::SyncStart()
 
 void ArxClientPlayer::ResponseVerifiedFrame(int FrameId)
 {
-	SCOPE_CYCLE_COUNTER(STAT_Reocver);
+	SCOPE_CYCLE_COUNTER(STAT_Recover);
 	auto RealFrameId = GetRealFrameId(FrameId);
 
 	TargetFrame = CurrentFrame;
@@ -90,16 +90,12 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 
 	while ( CurrentFrame < TargetFrame)
 	{
-		//if (!Commands.Has(CurrentFrame))
-		//	return;
-
 		if (!bBacktrace && CurrentFrame % VerificationCycle == 0)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_VerifyFrame);
 
 			TArray<uint8> Data;
 			CreateSnapshot(Data);
-			//auto VirtualFrame = CurrentFrame / VerificationCycle;
 
 			SendSnapshot(CurrentFrame, Data);
 		}
@@ -152,9 +148,10 @@ void ArxServerPlayer::SendSnapshot(int FrameId, const TArray<uint8>& Snapshot)
 	{
 		bDiscard = true;
 
-		auto VerifiedHash = Server->GetHash(LatestVerifiedFrame);
+		auto VerifiedHash = Server->GetHash(FrameId);
 		if (VerifiedHash != Hash)
 		{
+			// if snapshot is invalid, recover client from latest snapshot
 			auto& SN = Server->GetSnapshot(LatestVerifiedFrame);
 			check(SN.Num() > 0);
 			ResponseSnapshot(LatestVerifiedFrame, SN);
@@ -190,40 +187,11 @@ void ArxServerPlayer::RequestCommand(int FrameId)
 void ArxServerPlayer::RequestRegister()
 {
 	PlayerId = Server->RegisterPlayer(this);
-	ResponseRegister(PlayerId);
-	
-	auto FrameId = Server->GetCurrentFrame();
-	SyncStep(FrameId);
-
-
-
-	auto CurrentFrameId = Server->GetCurrentFrame();
-	for (int i = 0; i < CurrentFrameId; ++i)
-	{
-		auto& Cmds = Server->GetCommands(i);
-		ResponseCommand(i,  Cmds);
-	}
-
-	
-	{
-		auto VerifiedFrame = Server->GetLatestVerifiedFrame();
-		auto& Snapshot = Server->GetSnapshot(VerifiedFrame);
-		if (Snapshot.Num() != 0)
-		{
-			ResponseSnapshot(VerifiedFrame, Snapshot);
-			ResponseVerifiedFrame(VerifiedFrame);
-		}
-	}
-	
-
-
-	SyncStart();
 }
 
 void ArxServerPlayer::RequestUnregister()
 {
 	Server->UnregisterPlayer(PlayerId);
-	ResponseUnregister();
 }
 
 void ArxServerPlayer::RequestSnapshot(int FrameId)

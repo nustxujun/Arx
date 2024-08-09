@@ -52,5 +52,7 @@ private:
     int CurrentFrame = 0;
     int VerifiedFrame = 0;
     float TotalTime = 0;
+
     bool bIsPaused = false;
+    bool bStartFromSnapshot = false;
 };

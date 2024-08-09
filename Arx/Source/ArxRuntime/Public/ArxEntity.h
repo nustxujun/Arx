@@ -92,6 +92,7 @@ const FName ArxEntityRegister<T>::TypeName = ArxEntityRegister<T>::Register();
 
 inline ArxBasicSerializer& operator << (ArxBasicSerializer& Ser, ArxEntity& Entity)
 {
+#if ARX_DEBUG_SNAPSHOT
     if (Ser.GetTypeName() == ArxDebugSerializer::TypeName)
     {
         ArxEntityId EntId = Entity.GetId();
@@ -101,6 +102,7 @@ inline ArxBasicSerializer& operator << (ArxBasicSerializer& Ser, ArxEntity& Enti
         ARX_SERIALIZE_MEMBER(Ser, EntId);
 
     }
+#endif
     Entity.Serialize(Ser);
     return Ser;
 }

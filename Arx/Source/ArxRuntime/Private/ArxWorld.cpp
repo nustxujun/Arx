@@ -163,13 +163,16 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 		ARX_SERIALIZE_MEMBER_FAST(Space);
 		for (auto& Item : IdMap)
 		{
-			ARX_SERIALIZE_MEMBER_FAST(Item)
+			//ARX_SERIALIZE_MEMBER_FAST(Item)
+			Serializer << Item;
 
 			auto Ent = Entities[Item.Value];
 			auto TypeName = Ent->GetClassName();
-			ARX_SERIALIZE_MEMBER_FAST(TypeName);
+			Serializer << TypeName;
+			//ARX_SERIALIZE_MEMBER_FAST(TypeName);
 			auto PId = Ent->GetPlayerId();
-			ARX_SERIALIZE_MEMBER_FAST(PId);
+			Serializer << PId;
+			//ARX_SERIALIZE_MEMBER_FAST(PId);
 		}
 
 	}

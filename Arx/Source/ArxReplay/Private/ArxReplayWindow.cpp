@@ -621,7 +621,6 @@ void ArxReplayWindow::Construct(const FArguments&)
 				for (int i = Begin; i <= FrameId; ++i)
 				{
 
-
 					auto& Data = SimulationTrack.AddDefaulted_GetRef().Data;
 					ArxWriter Writer(Data);
 					DummyWorld->World->Serialize(Writer);
@@ -654,7 +653,8 @@ void ArxReplayWindow::Construct(const FArguments&)
 					if (i < Replay->Commands.Num())
 						ComSys.ReceiveCommands(&Replay->Commands[i].Data);
 
-					DummyWorld->World->Update();
+					if (i < FrameId)
+						DummyWorld->World->Update();
 				}
 
 			}
@@ -663,14 +663,15 @@ void ArxReplayWindow::Construct(const FArguments&)
 	};
 
 
-	auto MakeStepEvent = [this](int Index) {
-		return [this, Index]() {
+	auto MakeStepEvent = [this]() {
+		return [this]() {
 			auto Reply = FReply::Handled();
 			if (DummyWorld)
 			{
-				DummyWorld->World = MakeShared<ArxWorld>(DummyWorld->UnrealWorld);
-				int FrameId = TextViews[Index].FrameId;
-				auto PId = TextViews[Index].PlayerId;
+				if (SimulationTrack.Num() <= 0)
+					return Reply;
+
+				int FrameId = SimulationTrack.Num() - 1;
 
 				ReplayInfo* Replay = nullptr;
 				for (auto& Item : LevelTrackSource)
@@ -684,39 +685,10 @@ void ArxReplayWindow::Construct(const FArguments&)
 				if (!Replay)
 					return Reply;
 
-				TArray<FReplayFrame>* Frames = nullptr;
-				for (auto& Item : Replay->PlayerTrackSource)
-				{
-					if (Item.PId == PId)
-					{
-						Frames = &Item.FrameSource;
-					}
-				}
-
-				if (PId == -1)
-				{
-					Frames = &Replay->Commands;
-				}
-
-				if (!Frames)
-					return Reply;
 
 				auto NexrtFrameId = FrameId + 1;
-				if (SimulationTrack.Num() <= NexrtFrameId)
-				{
-					SimulationTrack.AddDefaulted(NexrtFrameId - SimulationTrack.Num() + 1);
-				}
-				SimulationTrack[NexrtFrameId].FrameId = NexrtFrameId;
-
-
-				if ((*Frames)[FrameId].Data.Num() == 0)
-				{
-					return Reply;
-				}
-
-
-				ArxReader Reader((*Frames)[FrameId].Data);
-				DummyWorld->Serialize(Reader);
+					
+				auto& NextFrame = SimulationTrack.AddDefaulted_GetRef();
 
 
 				auto& ComSys = DummyWorld->World->GetSystem<ArxCommandSystem>();
@@ -726,7 +698,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 				DummyWorld->World->Update();
 
 
-				auto& Data = SimulationTrack[NexrtFrameId].Data;
+				auto& Data = NextFrame.Data;
 				Data.Reset();
 				ArxWriter Writer(Data);
 				DummyWorld->World->Serialize(Writer);
@@ -751,7 +723,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 						}
 					}
 				}
-				SimulationTrack[NexrtFrameId].State = State;
+				NextFrame.State = State;
 			}
 			return Reply;
 		};
@@ -931,6 +903,9 @@ void ArxReplayWindow::Construct(const FArguments&)
 				}))
 		]
 
+	+ SHorizontalBox::Slot().AutoWidth().Padding(2)
+		[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent())]
+
 		]
 #if WITH_EDITOR
 	+ SVerticalBox::Slot().AutoHeight()
@@ -1058,8 +1033,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 			[SNew(STextBlock).Text_Lambda(MakeText(0))]
 			+ SHorizontalBox::Slot().AutoWidth()
 		[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeSimulationEvent(0))]
-	+ SHorizontalBox::Slot().AutoWidth()
-		[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent(0))]
+
 	+ SHorizontalBox::Slot().AutoWidth()
 		[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(0))]
 	+ SHorizontalBox::Slot().AutoWidth()
@@ -1073,8 +1047,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 		[SNew(STextBlock).Text_Lambda(MakeText(1))]
 			+ SHorizontalBox::Slot().AutoWidth()
 		[SNew(SButton).Text(FText::FromString("Simulate")).OnClicked_Lambda(MakeSimulationEvent(1))]
-	+ SHorizontalBox::Slot().AutoWidth()
-		[SNew(SButton).Text(FText::FromString("Step")).OnClicked_Lambda(MakeStepEvent(0))]
+
 	+ SHorizontalBox::Slot().AutoWidth()
 		[SNew(SButton).Text(FText::FromString("Copy")).OnClicked_Lambda(MakeCopyEvent(1))]
 	+ SHorizontalBox::Slot().AutoWidth()
@@ -1137,7 +1110,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 				DummyWorld->Serialize(DebugView);
 			}
 			TextViews[Index].Refresh(Data);
-			TextViews[Index].SnapshotData = Data;
+			TextViews[Index].SnapshotData = Frame.Data;
 			TextViews[Index].FrameId = Frame.FrameId;
 			TextViews[Index].PlayerId = NON_PLAYER_CONTROL;
 			if (FCString::IsNumeric(*Name))
@@ -1205,7 +1178,6 @@ void ArxReplayWindow::Construct(const FArguments&)
 	RefreshFileList();
 
 }
-#pragma optimize("",on)
 
 void ArxReplayWindow::SetContent(const FString& ParentPath)
 {
@@ -1401,7 +1373,9 @@ void ArxReplayWindow::FDummyWorld::Reset()
 	if (UnrealWorld)
 	{
 		if (bNeedDestroy)
+		{
 			UnrealWorld->DestroyWorld(false);
+		}
 		UnrealWorld = nullptr;
 	}
 }
@@ -1409,6 +1383,7 @@ void ArxReplayWindow::FDummyWorld::Reset()
 ArxReplayWindow::FDummyWorld::~FDummyWorld()
 {
 	Reset();
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 }
 
 void ArxReplayWindow::FDummyWorld::Serialize(ArxSerializer& Ser)

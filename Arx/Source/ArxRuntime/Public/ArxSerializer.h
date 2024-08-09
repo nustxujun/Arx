@@ -283,7 +283,7 @@ inline ArxBasicSerializer& operator << (ArxBasicSerializer& Ser, TSortedMap<Key,
             Key k;
             Value v;
             Ser << k << v;
-            Map.Add(k,v);
+            Map.Add(MoveTemp(k), MoveTemp(v));
         }
     }
 
@@ -317,13 +317,9 @@ inline void SerializeMember(ArxBasicSerializer& Ser, T& Val, const TCHAR* Name)
     {
         FString Ret = FString::Printf(TEXT("\n%s = "), Name);
         Ser << Ret;
-        Ser << Val;
     }
-    else
 #endif
-    {
-        Ser << Val;
-    }
+    Ser << Val;
 }
 
 

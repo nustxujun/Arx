@@ -43,18 +43,38 @@ private:
 
             return Ser;
         }
+
+        friend inline FString LexToString(const FTimer& Timer)
+        {
+            return FString::Printf(TEXT("Timer{%f, %f, %d, %d }"), (double)Timer.Interval, (double)Timer.End, Timer.EntityId, Timer.Id);
+        }
     };
 
     struct FTimerList
     {
         ArxTimePoint Begin;
         TSortedMap<int, FTimer> Timers;
+
+        friend inline ArxSerializer& operator << (ArxSerializer& Serializer, FTimerList& TimerList)
+        {
+            ARX_SERIALIZE_MEMBER_FAST(TimerList.Begin);
+            ARX_SERIALIZE_MEMBER_FAST(TimerList.Timers);
+            return Serializer;
+        }
+
+        friend inline FString LexToString(const FTimerList& TimerList)
+        {
+            FString Ret;
+            Ret += LexToString(TimerList.Begin) + TEXT("\n");
+            Ret += LexToString(TimerList.Timers);
+            return Ret;
+        }
     };
 
     TSortedMap<ArxTimeDuration, FTimerList> RepeatedTimers;
-    TArray<TUniquePtr<TPair<ArxTimePoint, FTimer>>> DelayedTimers;
+    TArray<TPair<ArxTimePoint, FTimer>> DelayedTimers;
     TArray<int> RemoveList;
-    TMap<int, ArxTimeDuration> TimerMap;
+    TSortedMap<int, ArxTimeDuration> TimerMap;
     ArxTimePoint TotalTime = 0;
     int TotalTimerCount = 0;
 };
