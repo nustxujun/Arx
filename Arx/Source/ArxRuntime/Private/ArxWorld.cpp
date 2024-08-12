@@ -1,5 +1,6 @@
 #include "ArxWorld.h"
 #include "ArxCommandSystem.h"
+#include "ArxTimerSystem.h"
 #include "ArxBlackboard.h"
 #include "ArxEvent.h"
 
@@ -70,6 +71,7 @@ void ArxWorld::AddInternalSystem()
 	AddSystem<ArxEventSystem>();
 	AddSystem<ArxCommandSystem>();
 	AddSystem<ArxBlackboard>();
+	AddSystem<ArxTimerSystem>();
 }
 
 ArxEntity* ArxWorld::CreateEntity(ArxPlayerId PId , FName TypeName)

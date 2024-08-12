@@ -57,9 +57,9 @@ void ArxPhysicsSystem::Serialize(ArxSerializer& Serializer)
 
 void ArxPhysicsSystem::Update()
 {
-	constexpr auto SubstempTime = ArxConstants::TimeStep / ArxConstants::NumPhysicsStep;
+	const auto SubstempTime = ArxConstants::TimeStep / ArxConstants::NumPhysicsStep;
 	for (int i = 0; i < ArxConstants::NumPhysicsStep; ++i)
-		PhysicsWorld->Step((reactphysics3d::decimal)SubstempTime);
+		PhysicsWorld->Step(FPToRp3d(SubstempTime));
 }
 
 void ArxPhysicsSystem::AddReferencedObjects(FReferenceCollector& Collector)

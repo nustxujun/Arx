@@ -1,6 +1,7 @@
 #pragma once 
 
 #include "CoreMinimal.h"
+#include "ArxFixedPoint.h"
 
 #if defined(_MSC_VER) && !defined(__clang__)
 #define UNIQUE_FUNCTION_ID __FUNCSIG__
@@ -12,6 +13,8 @@
 
 using ArxEntityId = uint32;
 using ArxPlayerId = uint32;
+using ArxFixed64 = Arx::FixedPoint64<32>;
+
 
 #define NON_PLAYER_CONTROL -1
 #define INVALID_ENTITY_ID -1
@@ -23,6 +26,23 @@ class ArxWorld;
 DECLARE_STATS_GROUP(TEXT("ArxGroup"), STATGROUP_ArxGroup, STATCAT_Advanced);
 
 #include "ArxSerializer.h"
+
+inline ArxBasicSerializer& operator << (ArxBasicSerializer& Ser, ArxFixed64& Val)
+{
+    ArxFixed64::fixed_raw Raw ;
+    if (Ser.IsSaving())
+    {
+        Raw = Val.raw_value();
+        Ser << Raw;
+    }
+    else
+    {
+        Ser << Raw;
+        Val.from_raw(Raw);
+    }
+    return Ser;
+}
+
 
 template<class T>
 inline uint64 ArxTypeId()
@@ -184,3 +204,13 @@ inline FString LexToString(const TOrderedArray<T, UniqueValue, Pred>& Array)
 
     return FString::Printf(TEXT("{\n%s\n}\n"), *Content);
 }
+
+
+
+class ArxConstants
+{
+public:
+    static constexpr ArxFixed64 TimeStep = 1.0 / 15.0;
+    static constexpr int NumPhysicsStep = 4;
+    static constexpr int VerificationCycle = 1; // frame
+};

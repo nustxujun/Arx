@@ -5,9 +5,10 @@
 
 #include "reactphysics3d/fixed64.hpp"
 
-using ArxFixed64 = f64::fixed64<32>;
-using ArxTimePoint = ArxFixed64;
-using ArxTimeDuration = ArxFixed64;
+FORCEINLINE reactphysics3d::decimal FPToRp3d(ArxFixed64 Value)
+{
+	return reactphysics3d::decimal(f64::fixed64<32>::from_raw(Value.raw_value()));
+}
 
 template<unsigned int F>
 FORCEINLINE uint32 GetTypeHash(f64::fixed64<F> Value)
@@ -132,11 +133,3 @@ inline ArxSerializer& operator << (ArxSerializer& Ser, Rp3dTransform& Trans)
 	return Ser;
 }
 
-
-class ArxConstants
-{
-public:
-    static constexpr ArxTimeDuration TimeStep = 1.0 / 15.0;
-	static constexpr int NumPhysicsStep = 4;
-	static constexpr int VerificationCycle = 1; // frame
-};

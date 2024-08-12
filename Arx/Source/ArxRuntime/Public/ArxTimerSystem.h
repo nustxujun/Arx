@@ -1,12 +1,15 @@
 #pragma once 
 
-#include "ArxGamePlayCommon.h"
+#include "ArxCommon.h"
 #include "ArxSystem.h"
 #include "ArxEvent.h"
 
 #define INVALID_TIMER 0
 
-class ARXGAMEPLAY_API ArxTimerSystem: public ArxSystem, public ArxEntityRegister<ArxTimerSystem>
+using ArxTimePoint = ArxFixed64;
+using ArxTimeDuration = ArxFixed64;
+
+class ARXRUNTIME_API ArxTimerSystem: public ArxSystem, public ArxEntityRegister<ArxTimerSystem>
 {
     GENERATED_ARX_ENTITY_BODY()
 public:
