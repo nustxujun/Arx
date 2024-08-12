@@ -46,7 +46,11 @@ void ArxPhysicsSystem::Initialize(bool bIsReplicated)
 
 void ArxPhysicsSystem::Uninitialize(bool bIsReplicated)
 {
+#if ENGINE_MAJOR_VERSION >= 5
+	PhysicsWorld->MarkAsGarbage();
+#else
 	PhysicsWorld->MarkPendingKill();
+#endif
 	PhysicsWorld = 0;
 }
 
