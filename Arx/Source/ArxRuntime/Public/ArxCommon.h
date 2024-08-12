@@ -38,11 +38,10 @@ inline ArxBasicSerializer& operator << (ArxBasicSerializer& Ser, ArxFixed64& Val
     else
     {
         Ser << Raw;
-        Val.from_raw(Raw);
+        Val = ArxFixed64::from_raw(Raw);
     }
     return Ser;
 }
-
 
 template<class T>
 inline uint64 ArxTypeId()

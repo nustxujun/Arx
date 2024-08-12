@@ -26,7 +26,9 @@ Lockstep plugin for unreal engine
 
 # Modules
 - ``ArxRuntime `` Core features of lockstep
-- ``ArxGamePlay`` some middleware such as 3d physics supported, filter 
+- ``ArxGamePlay`` some middleware such as 3d physics supported
 - ``ArxReplay`` replay tools
 
 
+# Setup 
+Highly Recommend you to download the [Lockstep Demo](https://github.com/nustxujun/UnrealLockstepDemo)
