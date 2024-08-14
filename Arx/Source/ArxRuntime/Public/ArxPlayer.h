@@ -8,6 +8,7 @@ class ARXRUNTIME_API ArxPlayerChannel
 {
 public:
     virtual ~ArxPlayerChannel() = default;
+    virtual void Initalize() = 0;
 
     virtual void SendCommand(int FrameId, const TArray<uint8>& Command) = 0;
     virtual void SendSnapshot(int FrameId, const TArray<uint8>& Snapshot) = 0;
@@ -34,6 +35,7 @@ class ARXRUNTIME_API ArxClientPlayer : public ArxPlayerChannel
 {
 public:
     ArxClientPlayer(UWorld* InWorld,int VerificationCycle);
+    void Initalize() override;
 
     void ResponseCommand(int FrameId, const TArray<uint8>& Command) override final;
     void ResponseRegister(ArxPlayerId Id) override final;
@@ -75,6 +77,7 @@ class ARXRUNTIME_API ArxServerPlayer : public ArxPlayerChannel
 {
 public:
     ArxServerPlayer(UArxServerSubsystem* Server);
+    void Initalize() override{}
 
     void SendSnapshot(int FrameId, const TArray<uint8>& Snapshot) override final;
     void SendCommand(int FrameId, const TArray<uint8>& Command) override final;

@@ -7,10 +7,18 @@
 DECLARE_CYCLE_STAT(TEXT("Verify Frame"), STAT_VerifyFrame, STATGROUP_ArxGroup);
 DECLARE_CYCLE_STAT(TEXT("Process Commands"), STAT_ProcessCommands, STATGROUP_ArxGroup);
 DECLARE_CYCLE_STAT(TEXT("Recover from snapshot"), STAT_Recover, STATGROUP_ArxGroup);
+DECLARE_CYCLE_STAT(TEXT("World Update"), STAT_WorldUpdate, STATGROUP_ArxGroup);
 
 ArxClientPlayer::ArxClientPlayer(UWorld* InWorld, int InVerificationCycle):World(InWorld),VerificationCycle(InVerificationCycle)
 {
 
+}
+
+void ArxClientPlayer::Initalize() 
+{
+	World.Setup([this](ArxWorld& W) {
+		OnRegister(W);
+	});
 }
 
 void ArxClientPlayer::ResponseCommand(int FrameId, const TArray<uint8>& Command)
@@ -21,10 +29,6 @@ void ArxClientPlayer::ResponseCommand(int FrameId, const TArray<uint8>& Command)
 void ArxClientPlayer::ResponseRegister(ArxPlayerId Id)
 {
 	PlayerId = Id;
-
-	World.Setup([this](ArxWorld& W) {
-		OnRegister(W);
-	});
 }
 
 void ArxClientPlayer::ResponseUnregister()
@@ -87,9 +91,11 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 		CurrentFrame >= TargetFrame )
 		return;
 
+	SCOPE_CYCLE_COUNTER(STAT_WorldUpdate);
 
 	while ( CurrentFrame < TargetFrame)
 	{
+
 		if (!bBacktrace && CurrentFrame % VerificationCycle == 0)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_VerifyFrame);

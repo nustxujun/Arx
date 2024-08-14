@@ -6,6 +6,7 @@
 #include "EngineUtils.h"
 #include "Rp3dShapeComponent.h"
 
+DECLARE_CYCLE_STAT(TEXT("Physics World Update"), STAT_PhysicsWorldUpdate, STATGROUP_ArxGroup);
 
 void ArxPhysicsSystem::Initialize(bool bIsReplicated)
 {
@@ -61,6 +62,12 @@ void ArxPhysicsSystem::Serialize(ArxSerializer& Serializer)
 
 void ArxPhysicsSystem::Update(int FrameId)
 {
+	SCOPE_CYCLE_COUNTER(STAT_PhysicsWorldUpdate);
+
+#if WITH_EDITOR
+	static FCriticalSection Mutex;
+	FScopeLock Lock(&Mutex);
+#endif
 	const auto SubstempTime = ArxConstants::TimeStep / ArxConstants::NumPhysicsStep;
 	for (int i = 0; i < ArxConstants::NumPhysicsStep; ++i)
 		PhysicsWorld->Step(FPToRp3d(SubstempTime));
