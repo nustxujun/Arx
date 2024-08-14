@@ -12,6 +12,7 @@ UArxSmoothMoveComponent::UArxSmoothMoveComponent(const FObjectInitializer& Objec
 
 void UArxSmoothMoveComponent::OnFrame(int Frame, FTransform Trans)
 {
+	FScopeLock Lock(&Mutex);
 	Transforms.Add( Trans);
 }
 
@@ -21,6 +22,8 @@ void UArxSmoothMoveComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	constexpr float Interval = (float)ArxConstants::TimeStep;
+
+	FScopeLock Lock(&Mutex);
 
 	DeltaTime *= FMath::Max(Transforms.Num(), 2) / 2;
 

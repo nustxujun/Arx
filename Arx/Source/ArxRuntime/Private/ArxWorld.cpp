@@ -105,25 +105,25 @@ bool ArxWorld::IsEntityValid(ArxEntityId Id)
 	return IdMap.Contains(Id);
 }
 
-void ArxWorld::Update()
+void ArxWorld::Update(int FrameId)
 {
 	SCOPED_BOOLEAN(bDeterministic);
 	for (auto Id : Systems)
 	{
 		auto Sys = GetEntity(Id);
-		static_cast<ArxSystem*>(Sys)->PreUpdate();
+		static_cast<ArxSystem*>(Sys)->PreUpdate(FrameId);
 	}
 
 	for (auto& Id : Systems)
 	{
 		auto Sys = GetEntity(Id);
-		static_cast<ArxSystem*>(Sys)->Update();
+		static_cast<ArxSystem*>(Sys)->Update(FrameId);
 	}
 
 	for (auto& Id : Systems)
 	{
 		auto Sys = GetEntity(Id);
-		static_cast<ArxSystem*>(Sys)->PostUpdate();
+		static_cast<ArxSystem*>(Sys)->PostUpdate(FrameId);
 	}
 
 
@@ -312,6 +312,8 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 	}
 
 	Serializer << DeadList;
+
+	CommandSys = &GetSystem<ArxCommandSystem>();
 }
 
 void ArxWorld::ClearDeadEntities()
@@ -346,4 +348,11 @@ void ArxWorld::Initialize(bool bReplicated)
 	{
 		Ent->Initialize(bReplicated);
 	}
+
+	CommandSys = &GetSystem<ArxCommandSystem>();
+}
+
+ArxCommandSystem& ArxWorld::GetCommandSystem()
+{
+	return *CommandSys;
 }

@@ -1,10 +1,10 @@
 #include "ArxRenderable.h"
 #include "ArxWorld.h"
 
-void IArxRenderable::LinkEntity(ArxEntity* Ent)
+void IArxRenderable::LinkEntity(ArxEntityId EId, ArxWorld* InWorld)
 {
-	World = &Ent->GetWorld();
-	EntityId = Ent->GetId();
+	EntityId = EId;
+	World = InWorld;
 }
 
 void IArxRenderable::UnlinkEntity()
@@ -12,11 +12,9 @@ void IArxRenderable::UnlinkEntity()
 	EntityId = INVALID_ENTITY_ID;
 }
 
-ArxEntity* IArxRenderable::GetEntity()
+ArxEntityId IArxRenderable::GetEntityId()
 {
-	if (EntityId == INVALID_ENTITY_ID)
-		return nullptr;
-	return World->GetEntity(EntityId);
+	return EntityId;
 }
 
 AActor* IArxRenderable::GetActor()

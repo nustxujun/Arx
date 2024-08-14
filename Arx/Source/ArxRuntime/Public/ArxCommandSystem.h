@@ -42,11 +42,25 @@ public:
         });
     }
 
+    template<class T>
+    void SendCommand_Async(ArxEntityId EntId, T Command)
+    {
+        FScopeLock Lock(&Mutex);
+        CachedCommandsFromThread.Add([this, Command = MoveTemp(Command), EntId](ArxSerializer& Serializer)mutable
+            {
+                auto IndexPtr = CommandMap.FindForward(T::TypeName);
+                check(IndexPtr);
+                Serializer << EntId;
+                Serializer << *IndexPtr;
+                Command.Serialize(Serializer);
+            });
+    }
+
     void SendAllCommands(ArxSerializer& Serializer);
     void ReceiveCommands( const TArray<uint8>* Data) { ReceivedCommands  = Data;}
 
     virtual void Initialize(bool bReplicated) override;
-    virtual void Update() override;
+    virtual void Update(int FrameId) override;
 
     FString DumpCommands(const TArray<uint8>& Commands);
 private:
@@ -55,7 +69,10 @@ private:
     static TArray<TFunction<void(ArxSerializer&)>> SerializersForDebug;
     TDoubleMap<FName, int> CommandMap;
     TArray<TFunction<void(ArxSerializer&)>> CachedCommands;
+    TArray<TFunction<void(ArxSerializer&)>> CachedCommandsFromThread;
+
     const TArray<uint8>* ReceivedCommands = nullptr;
+    FCriticalSection Mutex;
 };
 
 
@@ -124,6 +141,11 @@ const FName ArxCommand<T>::TypeName = ArxCommand<T>::Register();
         Name##_Command<Args...> Cmd;\
         Cmd.Members = std::make_tuple(args ...);\
         GetWorld().GetSystem<ArxCommandSystem>().SendCommand(GetId(), MoveTemp(Cmd));\
+    }\
+    template<class ... Args> static void Name##_Async(ArxWorld& InWorld, ArxEntityId Id, const Args& ... args){\
+        Name##_Command<Args...> Cmd;\
+        Cmd.Members = std::make_tuple(args ...);\
+        InWorld.GetSystem<ArxCommandSystem>().SendCommand_Async(Id,MoveTemp(Cmd));\
     }\
     void Name##_Internal(ArxPlayerId PId, __VA_ARGS__);
 

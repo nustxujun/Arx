@@ -14,7 +14,7 @@ public:
     virtual void Uninitialize(bool bIsReplicated) override;
 
     virtual void Serialize(ArxSerializer& Serializer) override;
-    virtual void Update() override;
+    virtual void Update(int FrameId) override;
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
     FString GetReferencerName(void) const{return TEXT("ArxPhysicsSystem"); }
 

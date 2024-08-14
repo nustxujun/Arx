@@ -15,7 +15,7 @@ public:
 public:
     ArxWorld(class UWorld* InWorld);
     ~ArxWorld();
-    void Update();
+    void Update(int FrameId);
 
     class UWorld* GetUnrealWorld(){return UnrealWorld;}
 
@@ -80,6 +80,8 @@ public:
 
     void RegisterServerEvent(ArxServerEvent::Event Event, ArxEntityId Id);
     void UnregisterServerEvent(ArxServerEvent::Event Event, ArxEntityId Id);
+
+    class ArxCommandSystem& GetCommandSystem();
 private:
     void AddInternalSystem();
     void ClearDeadEntities();
@@ -93,6 +95,7 @@ private:
     ArxEntityId UniqueId = 1;
     bool bDeterministic = false;
     bool bInitializing = false;
+    class ArxCommandSystem* CommandSys;
 public:
 
 };

@@ -654,7 +654,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 						ComSys.ReceiveCommands(&Replay->Commands[i].Data);
 
 					if (i < FrameId)
-						DummyWorld->World->Update();
+						DummyWorld->World->Update(i);
 				}
 
 			}
@@ -695,7 +695,7 @@ void ArxReplayWindow::Construct(const FArguments&)
 				if (FrameId < Replay->Commands.Num())
 					ComSys.ReceiveCommands(&Replay->Commands[FrameId].Data);
 
-				DummyWorld->World->Update();
+				DummyWorld->World->Update(FrameId);
 
 
 				auto& Data = NextFrame.Data;

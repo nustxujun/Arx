@@ -59,7 +59,7 @@ void ArxPhysicsSystem::Serialize(ArxSerializer& Serializer)
 
 }
 
-void ArxPhysicsSystem::Update()
+void ArxPhysicsSystem::Update(int FrameId)
 {
 	const auto SubstempTime = ArxConstants::TimeStep / ArxConstants::NumPhysicsStep;
 	for (int i = 0; i < ArxConstants::NumPhysicsStep; ++i)

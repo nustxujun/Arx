@@ -15,5 +15,6 @@ public:
 
 private:
     TRingBuffer<FTransform> Transforms;
+    FCriticalSection Mutex;
     float TotalTime = 0;
 };

@@ -112,7 +112,7 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 			}
 		}
 
-		World.Update();
+		World.Update(CurrentFrame);
 
 		ArxDelegates::OnClientWorldStep.Broadcast(&World, GetPlayerId(), CurrentFrame);
 

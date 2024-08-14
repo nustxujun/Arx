@@ -20,7 +20,7 @@ public:
     };
 
     using ArxSystem::ArxSystem;
-    virtual void Update() override;
+    virtual void Update(int FrameId) override;
 
     int AddTimer(ArxEntityId, ArxTimeDuration Delay, ArxTimeDuration Interval = 0, ArxTimeDuration Duration = 0);
     void Serialize(ArxSerializer& Serializer) override;

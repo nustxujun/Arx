@@ -17,14 +17,15 @@ class ARXGAMEPLAY_API IArxRenderable
 {
     GENERATED_BODY()
 public:
-    virtual void LinkEntity(ArxEntity* Ent) ;
+    virtual void LinkEntity(ArxEntityId EId, ArxWorld* World) ;
     virtual void UnlinkEntity() ;
     virtual AActor* GetActor();
 
-    virtual void OnFrame(int FrameId) = 0;
+    virtual void OnFrame_Async(int FrameId) = 0;
 
-    ArxEntity* GetEntity();
+    ArxEntityId GetEntityId();
+    ArxWorld& GetArxWorld(){return *World;}
 protected:
-    ArxWorld* World = 0;
     ArxEntityId EntityId = NON_PLAYER_CONTROL;
+    ArxWorld* World = nullptr;
 };

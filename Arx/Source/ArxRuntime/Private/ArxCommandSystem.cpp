@@ -27,7 +27,7 @@ void ArxCommandSystem::Initialize(bool bReplicated)
     }
 }
 
-void ArxCommandSystem::Update() 
+void ArxCommandSystem::Update(int FrameId)
 {
     if (!ReceivedCommands)
         return;
@@ -92,15 +92,22 @@ void ArxCommandSystem::Update()
 
 void ArxCommandSystem::SendAllCommands(ArxSerializer& Serializer)
 {
-    int Num = CachedCommands.Num();
-    if (Num == 0)
-        return;
-    Serializer << Num;
-    for (auto& Com: CachedCommands)
     {
-        Com(Serializer);
+        FScopeLock Lock(&Mutex);
+        CachedCommands.Append(MoveTemp(CachedCommandsFromThread));
     }
-    CachedCommands.Reset();
+    int Num = CachedCommands.Num();
+    if (Num != 0)
+    {
+        Serializer << Num;
+        for (auto& Com: CachedCommands)
+        {
+            Com(Serializer);
+        }
+        CachedCommands.Reset();
+    }
+
+
 }
 
 FString ArxCommandSystem::DumpCommands(const TArray<uint8>& Commands)

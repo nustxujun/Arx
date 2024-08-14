@@ -27,7 +27,7 @@ void ArxTimerSystem::RemoveTimer(int Id)
         RemoveList.Add(Id);
 }
 
-void ArxTimerSystem::Update()
+void ArxTimerSystem::Update(int FrameId)
 {
     TotalTime += ArxConstants::TimeStep;
     while (DelayedTimers.Num() > 0)
