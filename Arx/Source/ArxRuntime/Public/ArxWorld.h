@@ -12,9 +12,12 @@ public:
         PlayerEnter,
         PlayerLeave,
     };
+
+
 public:
     ArxWorld(class UWorld* InWorld);
     ~ArxWorld();
+    bool IsPrepared();
     void Update(int FrameId);
 
     class UWorld* GetUnrealWorld(){return UnrealWorld;}
@@ -81,11 +84,29 @@ public:
     void RegisterServerEvent(ArxServerEvent::Event Event, ArxEntityId Id);
     void UnregisterServerEvent(ArxServerEvent::Event Event, ArxEntityId Id);
 
-    class ArxCommandSystem& GetCommandSystem();
+    void RequestAccessInGameThread(TFunction<void(const ArxWorld&)>&& Func);
 private:
     void AddInternalSystem();
     void ClearDeadEntities();
 private:
+    class FAccessor: public FTickableGameObject
+    {
+    public:
+        FAccessor(ArxWorld&);
+        void Request(TFunction<void(const ArxWorld&)>&& Callback);
+        void Acquire();
+        bool Release();
+
+        void Tick(float DeltaTime) override;
+        TStatId GetStatId() const override { return {}; };
+    private:
+        ArxWorld& World;
+        TArray< TFunction<void(const ArxWorld&)>>Callbacks;
+        FCriticalSection Mutex;
+        std::atomic_bool bAccessable;
+    };
+
+    FAccessor Accessor;
     class UWorld* UnrealWorld;
     TArray<ArxEntityId> Systems; 
     TSortedMap<uint64_t, ArxEntityId> SystemMap;
@@ -95,7 +116,6 @@ private:
     ArxEntityId UniqueId = 1;
     bool bDeterministic = false;
     bool bInitializing = false;
-    class ArxCommandSystem* CommandSys;
 public:
 
 };

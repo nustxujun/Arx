@@ -30,6 +30,14 @@ DECLARE_STATS_GROUP(TEXT("ArxGroup"), STATGROUP_ArxGroup, STATCAT_Advanced);
 inline ArxBasicSerializer& operator << (ArxBasicSerializer& Ser, ArxFixed64& Val)
 {
     ArxFixed64::fixed_raw Raw ;
+#if ARX_DEBUG_SNAPSHOT
+    if (Ser.GetTypeName() == ArxDebugSerializer::TypeName)
+    {
+        FString Ret = LexToString(Val) ;
+        Ser << Ret;
+    }
+    else
+#endif
     if (Ser.IsSaving())
     {
         Raw = Val.raw_value();

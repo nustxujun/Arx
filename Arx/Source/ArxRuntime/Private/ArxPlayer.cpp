@@ -93,7 +93,7 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 
 	SCOPE_CYCLE_COUNTER(STAT_WorldUpdate);
 
-	while ( CurrentFrame < TargetFrame)
+	while ( CurrentFrame < TargetFrame && World.IsPrepared())
 	{
 
 		if (!bBacktrace && CurrentFrame % VerificationCycle == 0)
@@ -119,8 +119,6 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 		}
 
 		World.Update(CurrentFrame);
-
-		ArxDelegates::OnClientWorldStep.Broadcast(&World, GetPlayerId(), CurrentFrame);
 
 		{
 			TArray<uint8> Data;
@@ -172,7 +170,7 @@ void ArxServerPlayer::SendSnapshot(int FrameId, const TArray<uint8>& Snapshot)
 
 
 
-	ArxDelegates::OnClientSnapshot.Broadcast(GetPlayerId(), FrameId, Snapshot, Hash, bDiscard);
+	ArxDelegates::OnServerReceiveSnapshot.Broadcast(GetPlayerId(), FrameId, Snapshot, Hash, bDiscard);
 }
 
 void ArxServerPlayer::SendCommand(int FrameId, const TArray<uint8>& Command)

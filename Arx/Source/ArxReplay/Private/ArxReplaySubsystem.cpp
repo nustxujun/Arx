@@ -23,8 +23,7 @@ bool UArxReplaySubsystem::IsServer()
 void UArxReplaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	CommandHandle = ArxDelegates::OnServerCommands.AddUObject(this, &UArxReplaySubsystem::OnCommands);
-	SnapshotHandle = ArxDelegates::OnClientSnapshot.AddUObject(this, &UArxReplaySubsystem::OnSnapshot);
-	//LocalSnapshotHandle = ArxDelegates::OnClientWorldStep.AddUObject(this, &UArxReplaySubsystem::OnLocalSnapshot);
+	SnapshotHandle = ArxDelegates::OnServerReceiveSnapshot.AddUObject(this, &UArxReplaySubsystem::OnSnapshot);
 
 }
 
@@ -50,8 +49,7 @@ void UArxReplaySubsystem::PrepareDirectory()
 void UArxReplaySubsystem::Deinitialize()
 {
 	ArxDelegates::OnServerCommands.Remove(CommandHandle);
-	ArxDelegates::OnClientSnapshot.Remove(SnapshotHandle);
-	ArxDelegates::OnClientSnapshot.Remove(LocalSnapshotHandle);
+	ArxDelegates::OnServerReceiveSnapshot.Remove(SnapshotHandle);
 	
 	CommandsFile.Reset();
 	RemoteSnapshots.Reset();

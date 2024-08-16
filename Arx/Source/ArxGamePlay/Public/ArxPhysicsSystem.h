@@ -4,7 +4,7 @@
 #include "ArxGamePlayCommon.h"
 
 
-class ARXGAMEPLAY_API ArxPhysicsSystem : public ArxSystem, public ArxEntityRegister<ArxPhysicsSystem>,public FGCObject
+class ARXGAMEPLAY_API ArxPhysicsSystem : public ArxSystem, public ArxEntityRegister<ArxPhysicsSystem>
 {
     GENERATED_ARX_ENTITY_BODY()
 
@@ -15,10 +15,8 @@ public:
 
     virtual void Serialize(ArxSerializer& Serializer) override;
     virtual void Update(int FrameId) override;
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
-    FString GetReferencerName(void) const{return TEXT("ArxPhysicsSystem"); }
 
-    URp3dRigidBody* CreateRigidBody();
+    TSharedPtr<class FRp3dRigidBody> CreateRigidBody();
 private:
-    class URp3dWorld* PhysicsWorld;
+    TSharedPtr<class FRp3dPhysicsWorld> PhysicsWorld;
 };

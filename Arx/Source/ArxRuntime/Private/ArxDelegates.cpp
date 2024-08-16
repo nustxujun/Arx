@@ -1,5 +1,4 @@
 #include "ArxDelegates.h"
 
-ArxDelegates::FOnClientWorldStep ArxDelegates::OnClientWorldStep;
 ArxDelegates::FOnServerCommands ArxDelegates::OnServerCommands;
-ArxDelegates::FOnClientSnapshot ArxDelegates::OnClientSnapshot;
+ArxDelegates::FOnServerReceiveSnapshot ArxDelegates::OnServerReceiveSnapshot;

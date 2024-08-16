@@ -11,12 +11,11 @@ DECLARE_CYCLE_STAT(TEXT("Physics World Update"), STAT_PhysicsWorldUpdate, STATGR
 void ArxPhysicsSystem::Initialize(bool bIsReplicated)
 {
 	auto World = GetWorld().GetUnrealWorld();
-	PhysicsWorld = NewObject<URp3dWorld>(World);
-
 	FRp3dWorldSettings Settings;
 	Settings.bAutoUpdate = false;
-	PhysicsWorld->Initialize(Settings);
-	PhysicsWorld->EnableDebugDraw(true);
+	PhysicsWorld = MakeShared<FRp3dPhysicsWorld>(Settings);
+
+	PhysicsWorld->SetIsDebugRenderingEnabled(true);
 
 	TArray<AActor*> List;
 	for (TActorIterator<AActor> Iter(World); Iter; ++Iter)
@@ -47,12 +46,7 @@ void ArxPhysicsSystem::Initialize(bool bIsReplicated)
 
 void ArxPhysicsSystem::Uninitialize(bool bIsReplicated)
 {
-#if ENGINE_MAJOR_VERSION >= 5
-	PhysicsWorld->MarkAsGarbage();
-#else
-	PhysicsWorld->MarkPendingKill();
-#endif
-	PhysicsWorld = 0;
+	PhysicsWorld.Reset();
 }
 
 void ArxPhysicsSystem::Serialize(ArxSerializer& Serializer) 
@@ -70,17 +64,11 @@ void ArxPhysicsSystem::Update(int FrameId)
 #endif
 	const auto SubstempTime = ArxConstants::TimeStep / ArxConstants::NumPhysicsStep;
 	for (int i = 0; i < ArxConstants::NumPhysicsStep; ++i)
-		PhysicsWorld->Step(FPToRp3d(SubstempTime));
+		PhysicsWorld->Update(FPToRp3d(SubstempTime));
 }
 
-void ArxPhysicsSystem::AddReferencedObjects(FReferenceCollector& Collector)
+TSharedPtr<FRp3dRigidBody> ArxPhysicsSystem::CreateRigidBody()
 {
-	Collector.AddReferencedObject(PhysicsWorld);
-}
-
-URp3dRigidBody* ArxPhysicsSystem::CreateRigidBody()
-{
-	auto Rigidbody = NewObject<URp3dRigidBody>(PhysicsWorld);
-	Rigidbody->Initialize(PhysicsWorld);
+	auto Rigidbody = PhysicsWorld->CreateRigidBody();
 	return Rigidbody;
 }

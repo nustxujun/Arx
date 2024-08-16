@@ -21,7 +21,7 @@ public:
     virtual void UnlinkEntity() ;
     virtual AActor* GetActor();
 
-    virtual void OnFrame_Async(int FrameId) = 0;
+    virtual void OnFrame(int FrameId) = 0;
 
     ArxEntityId GetEntityId();
     ArxWorld& GetArxWorld(){return *World;}

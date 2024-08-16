@@ -15,6 +15,5 @@ public:
 
 private:
     TRingBuffer<FTransform> Transforms;
-    TQueue<FTransform> TransQueue;
     float TotalTime = 0;
 };

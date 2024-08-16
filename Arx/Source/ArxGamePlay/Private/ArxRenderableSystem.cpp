@@ -18,7 +18,6 @@ void ArxRenderableSystem::Uninitialize(bool bIsReplicated)
 
     check(IsInGameThread());
 
-    Tick(0);
     auto World = GetWorld().GetUnrealWorld();
     for (auto& Item : Actors)
     {
@@ -33,19 +32,12 @@ void ArxRenderableSystem::Serialize(ArxSerializer& Serializer)
 
 void ArxRenderableSystem::Update(int FrameId)
 {
-    TArray<AActor*> List;
-    {
-        FScopeLock Lock(&Mutex);
-        for (auto& Item: Actors)
+    AddTask([FrameId,this]( ){
+        for (auto Actor : Actors)
         {
-            List.Add(Item.Value.Get());
+            Cast<IArxRenderable>(Actor.Value)->OnFrame(FrameId);
         }
-    }
-
-    for (auto Actor : List)
-    {
-        Cast<IArxRenderable>(Actor)->OnFrame_Async(FrameId);
-    }
+    });
 }
 
 void ArxRenderableSystem::Link(ArxEntityId EId, TSubclassOf<AActor> ActorClass)
@@ -88,7 +80,7 @@ void ArxRenderableSystem::Link(ArxEntityId EId, TFunction<UClass* ()> GetClass)
         auto NewActor = Cast<AActor>(WeakWorld->SpawnActor(Class, NULL, NULL, Parameters));
         check(NewActor);
         Cast<IArxRenderable>(NewActor)->LinkEntity(EId,&GetWorld());
-        FScopeLock Lock(&Mutex);
+        
         Actors.Add(EId, NewActor);
     });
 
@@ -102,10 +94,9 @@ void ArxRenderableSystem::Unlink(ArxEntityId EId)
             return;
 
         auto Actor = GetActor(EId);
-        {
-            FScopeLock Lock(&Mutex);
-            Actors.Remove(EId);
-        }
+            
+        Actors.Remove(EId);
+        
         if (!Actor.IsValid(false, true))
             return;
 
@@ -117,26 +108,14 @@ void ArxRenderableSystem::Unlink(ArxEntityId EId)
 
 TWeakObjectPtr<AActor> ArxRenderableSystem::GetActor(ArxEntityId EId)
 {
-    FScopeLock Lock(&Mutex);
+    check(IsInGameThread());
     return Actors.FindRef(EId);
 }
 
 void ArxRenderableSystem::AddTask(TFunction<void()> Func)
 {
-    FScopeLock Lock(&TaskMutex);
-    Tasks.Add(MoveTemp(Func));
+    GetWorld().RequestAccessInGameThread([Func = MoveTemp(Func)](const ArxWorld& World) {
+        Func();
+    });
 }
 
-void ArxRenderableSystem::Tick(float DeltaTime)
-{
-    auto Type = GetWorld().GetUnrealWorld()->WorldType;
-    if (Type == EWorldType::Game || Type == EWorldType::PIE)
-    { 
-        FScopeLock Lock(&TaskMutex);
-        for (auto& Task : Tasks)
-        {
-            Task();
-        }
-    }
-    Tasks.Reset();
-}

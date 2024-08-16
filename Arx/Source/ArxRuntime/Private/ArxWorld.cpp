@@ -18,7 +18,7 @@ struct ScopedBoolean
 
 
 ArxWorld::ArxWorld(UWorld* InWorld)
-    :ArxEntity(*this, 0), UnrealWorld(InWorld)
+    :ArxEntity(*this, 0), Accessor(*this),UnrealWorld(InWorld)
 {
 	Entities.Reserve(10000);
 }
@@ -49,6 +49,11 @@ ArxWorld::~ArxWorld()
 	}
 }
 
+bool ArxWorld::IsPrepared()
+{
+	return Accessor.Release();
+}
+
 void ArxWorld::Setup(const TFunction<void(ArxWorld&)>& Callback)
 {
 	SCOPED_BOOLEAN(bDeterministic);
@@ -65,6 +70,13 @@ void ArxWorld::UnregisterServerEvent(ArxServerEvent::Event Event, ArxEntityId Id
 {
 	GetSystem<ArxEventSystem>().UnregisterEvent(0, Event, Id);
 }
+
+void ArxWorld::RequestAccessInGameThread(TFunction<void(const ArxWorld&)>&& Func)
+{
+	Accessor.Request(MoveTemp(Func));
+}
+
+
 
 void ArxWorld::AddInternalSystem()
 {
@@ -107,6 +119,8 @@ bool ArxWorld::IsEntityValid(ArxEntityId Id)
 
 void ArxWorld::Update(int FrameId)
 {
+	checkf(Accessor.Release(), TEXT("need to prepare world before updating"));
+
 	SCOPED_BOOLEAN(bDeterministic);
 	for (auto Id : Systems)
 	{
@@ -128,6 +142,8 @@ void ArxWorld::Update(int FrameId)
 
 
 	ClearDeadEntities();
+
+	Accessor.Acquire();
 }
 
 struct ClassInfo
@@ -313,7 +329,6 @@ void ArxWorld::Serialize(ArxSerializer& Serializer)
 
 	Serializer << DeadList;
 
-	CommandSys = &GetSystem<ArxCommandSystem>();
 }
 
 void ArxWorld::ClearDeadEntities()
@@ -349,10 +364,54 @@ void ArxWorld::Initialize(bool bReplicated)
 		Ent->Initialize(bReplicated);
 	}
 
-	CommandSys = &GetSystem<ArxCommandSystem>();
 }
 
-ArxCommandSystem& ArxWorld::GetCommandSystem()
+
+ArxWorld::FAccessor::FAccessor(ArxWorld& InWorld) :
+	World(InWorld), bAccessable(false)
 {
-	return *CommandSys;
+}
+
+
+void ArxWorld::FAccessor::Tick(float DeltaTime)
+{
+	if (!bAccessable.load())
+		return;
+
+	check(IsInGameThread())
+	TArray<TFunction<void(const ArxWorld&)>> List;
+	{
+		FScopeLock Lock(&Mutex);
+		Swap(List, Callbacks);
+	}
+
+	for (auto& Callback : List)
+	{
+		Callback(World);
+	}
+
+
+	bAccessable.store(false);
+}
+
+void ArxWorld::FAccessor::Request(TFunction<void(const ArxWorld&)>&& Func)
+{
+	if (IsInGameThread())
+	{
+		Func(World);
+	}
+	else
+	{
+		FScopeLock Lock(&Mutex);
+		Callbacks.Add(MoveTemp(Func));
+	}
+}
+
+bool ArxWorld::FAccessor::Release()
+{
+	return IsInGameThread() || bAccessable.load() == false;
+}
+void ArxWorld::FAccessor::Acquire()
+{
+	bAccessable.store(true);
 }

@@ -3,17 +3,11 @@
 #include "CoreMinimal.h"
 #include "ArxCommon.h"
 
-class ARXRUNTIME_API ArxDelegates
+namespace ArxDelegates
 {
-public:
-    DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnClientWorldStep, ArxWorld* World, ArxPlayerId, int);
-    static FOnClientWorldStep OnClientWorldStep;
-
     DECLARE_MULTICAST_DELEGATE_TwoParams(FOnServerCommands, int FrameId, const TArray<uint8>& Commands);
-    static FOnServerCommands OnServerCommands;
+    extern ARXRUNTIME_API FOnServerCommands OnServerCommands;
 
-    DECLARE_MULTICAST_DELEGATE_FiveParams(FOnClientSnapshot, ArxPlayerId PId, int FrameId,const TArray<uint8>& Data, uint32 , bool);
-    static FOnClientSnapshot OnClientSnapshot;
-
-
+    DECLARE_MULTICAST_DELEGATE_FiveParams(FOnServerReceiveSnapshot, ArxPlayerId PId, int FrameId,const TArray<uint8>& Data, uint32 , bool);
+    extern ARXRUNTIME_API FOnServerReceiveSnapshot OnServerReceiveSnapshot;
 };
