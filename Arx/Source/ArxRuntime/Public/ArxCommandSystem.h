@@ -22,7 +22,9 @@ public:
     static void RegisterCommand()
     {
         IndexOfCommands.Add(ArxTypeName<T>(), Executers.Num() );
-        Executers.Add(MakeShared<T>());
+        Executers.Add([]()->TSharedPtr<ArxBasicCommand> {
+            return MakeShared<T>();
+        });
 
         SerializersForDebug.Add([Cmd = T{}](ArxSerializer& Serializer) mutable{
             Cmd.Serialize(Serializer);
@@ -42,19 +44,19 @@ public:
         });
     }
 
-    template<class T>
-    void SendCommand_Async(ArxEntityId EntId, T Command)
-    {
-        FScopeLock Lock(&Mutex);
-        CachedCommandsFromThread.Add([this, Command = MoveTemp(Command), EntId](ArxSerializer& Serializer)mutable
-        {
-            auto IndexPtr = CommandMap.FindForward(T::TypeName);
-            check(IndexPtr);
-            Serializer << EntId;
-            Serializer << *IndexPtr;
-            Command.Serialize(Serializer);
-        });
-    }
+    //template<class T>
+    //void SendCommand_Async(ArxEntityId EntId, T Command)
+    //{
+    //    FScopeLock Lock(&Mutex);
+    //    CachedCommandsFromThread.Add([this, Command = MoveTemp(Command), EntId](ArxSerializer& Serializer)mutable
+    //    {
+    //        auto IndexPtr = CommandMap.FindForward(T::TypeName);
+    //        check(IndexPtr);
+    //        Serializer << EntId;
+    //        Serializer << *IndexPtr;
+    //        Command.Serialize(Serializer);
+    //    });
+    //}
 
     void SendAllCommands(ArxSerializer& Serializer);
     void ReceiveCommands( const TArray<uint8>* Data) { ReceivedCommands  = Data;}
@@ -65,14 +67,14 @@ public:
     FString DumpCommands(const TArray<uint8>& Commands);
 private:
     static TMap<FName, uint32> IndexOfCommands;
-    static TArray<TSharedPtr<ArxBasicCommand>> Executers;
+    static TArray<TFunction<TSharedPtr<ArxBasicCommand>()>> Executers;
     static TArray<TFunction<void(ArxSerializer&)>> SerializersForDebug;
     TDoubleMap<FName, int> CommandMap;
     TArray<TFunction<void(ArxSerializer&)>> CachedCommands;
-    TArray<TFunction<void(ArxSerializer&)>> CachedCommandsFromThread;
+    //TArray<TFunction<void(ArxSerializer&)>> CachedCommandsFromThread;
 
     const TArray<uint8>* ReceivedCommands = nullptr;
-    FCriticalSection Mutex;
+    //FCriticalSection Mutex;
 };
 
 
@@ -136,12 +138,12 @@ const FName ArxCommand<T>::TypeName = ArxCommand<T>::Register();
     template<class ... Args> void Name(const Args& ... args){\
         Name##_Command<Args...> Cmd;\
         Cmd.Members = std::make_tuple(args ...);\
-        GetWorld().GetSystem<ArxCommandSystem>().SendCommand(GetId(), MoveTemp(Cmd));\
+        GetWorld().RequestAccessInGameThread([&World = GetWorld(),Id = GetId(), Cmd = MoveTemp(Cmd)](const ArxWorld& World)mutable{World.GetSystem<ArxCommandSystem>().SendCommand(Id, Cmd); });\
     }\
-    template<class ... Args> static void Name##_Async(ArxWorld& InWorld, ArxEntityId Id, const Args& ... args){\
+    template<class ... Args> static void Name##_Static(ArxWorld& InWorld, ArxEntityId Id, const Args& ... args){\
         Name##_Command<Args...> Cmd;\
         Cmd.Members = std::make_tuple(args ...);\
-        InWorld.GetSystem<ArxCommandSystem>().SendCommand_Async(Id,MoveTemp(Cmd));\
+        InWorld.RequestAccessInGameThread([&InWorld,Id, Cmd = MoveTemp(Cmd)](const ArxWorld& World)mutable{InWorld.GetSystem<ArxCommandSystem>().SendCommand(Id, MoveTemp(Cmd)); });\
     }\
     void Name##_Internal(ArxPlayerId PId, __VA_ARGS__);
 

@@ -2,7 +2,7 @@
 #include "ArxWorld.h"
     
 TMap<FName, uint32> ArxCommandSystem::IndexOfCommands;
-TArray<TSharedPtr<ArxBasicCommand>> ArxCommandSystem::Executers;
+TArray<TFunction<TSharedPtr<ArxBasicCommand>()>> ArxCommandSystem::Executers;
 TArray<TFunction<void(ArxSerializer&)>> ArxCommandSystem::SerializersForDebug;
 
 
@@ -68,7 +68,7 @@ void ArxCommandSystem::Update(int FrameId)
                 uint32 ExtIdx = IndexOfCommands[*Name];
 
                 check(Executers.IsValidIndex(ExtIdx));
-                auto Cmd = Executers[ExtIdx];
+                auto Cmd = Executers[ExtIdx]();
                 Cmd->Serialize(Serializer);
                 FuncList.Add([this, EntId, PId = PlyId, Cmd ]() {
                     auto& Ent = *GetWorld().GetEntity(EntId);
@@ -93,10 +93,10 @@ void ArxCommandSystem::Update(int FrameId)
 
 void ArxCommandSystem::SendAllCommands(ArxSerializer& Serializer)
 {
-    {
-        FScopeLock Lock(&Mutex);
-        CachedCommands.Append(MoveTemp(CachedCommandsFromThread));
-    }
+    //{
+    //    FScopeLock Lock(&Mutex);
+    //    CachedCommands.Append(MoveTemp(CachedCommandsFromThread));
+    //}
     int Num = CachedCommands.Num();
     if (Num != 0)
     {
