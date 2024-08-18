@@ -4,6 +4,14 @@
 #include "ArxSystem.h"
 #include "ArxWorld.h"
 
+struct ArxBasicCommand
+{
+    virtual ~ArxBasicCommand() {};
+    virtual void Serialize(ArxSerializer&) = 0;
+    virtual void Execute(ArxEntity&, ArxPlayerId) = 0;
+};
+
+
 class ARXRUNTIME_API ArxCommandSystem: public ArxSystem, public ArxEntityRegister<ArxCommandSystem>
 {
     GENERATED_ARX_ENTITY_BODY()
@@ -14,15 +22,7 @@ public:
     static void RegisterCommand()
     {
         IndexOfCommands.Add(ArxTypeName<T>(), Executers.Num() );
-        Executers.Add([]( ArxSerializer& Serializer)
-        {
-            T Com;
-            Com.Serialize(Serializer);
-
-            return [Com = MoveTemp(Com)](ArxEntity& Ent, ArxPlayerId Id)mutable{
-                Com.Execute(Ent, Id);
-            };
-        });
+        Executers.Add(MakeShared<T>());
 
         SerializersForDebug.Add([Cmd = T{}](ArxSerializer& Serializer) mutable{
             Cmd.Serialize(Serializer);
@@ -47,13 +47,13 @@ public:
     {
         FScopeLock Lock(&Mutex);
         CachedCommandsFromThread.Add([this, Command = MoveTemp(Command), EntId](ArxSerializer& Serializer)mutable
-            {
-                auto IndexPtr = CommandMap.FindForward(T::TypeName);
-                check(IndexPtr);
-                Serializer << EntId;
-                Serializer << *IndexPtr;
-                Command.Serialize(Serializer);
-            });
+        {
+            auto IndexPtr = CommandMap.FindForward(T::TypeName);
+            check(IndexPtr);
+            Serializer << EntId;
+            Serializer << *IndexPtr;
+            Command.Serialize(Serializer);
+        });
     }
 
     void SendAllCommands(ArxSerializer& Serializer);
@@ -65,7 +65,7 @@ public:
     FString DumpCommands(const TArray<uint8>& Commands);
 private:
     static TMap<FName, uint32> IndexOfCommands;
-    static TArray<TFunction<TFunction<void(ArxEntity&, ArxPlayerId)>(ArxSerializer&)>> Executers;
+    static TArray<TSharedPtr<ArxBasicCommand>> Executers;
     static TArray<TFunction<void(ArxSerializer&)>> SerializersForDebug;
     TDoubleMap<FName, int> CommandMap;
     TArray<TFunction<void(ArxSerializer&)>> CachedCommands;
@@ -77,13 +77,9 @@ private:
 
 
 template<class T>
-class ArxCommand
+class ArxCommand: public ArxBasicCommand
 {
 public:
-    virtual ~ArxCommand(){};
-    virtual void Serialize(ArxSerializer&) = 0;
-    virtual void Execute(ArxEntity&, ArxPlayerId) = 0;
-
     const static FName TypeName;
 
 private:

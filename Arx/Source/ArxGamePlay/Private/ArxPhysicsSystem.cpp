@@ -56,12 +56,12 @@ void ArxPhysicsSystem::Serialize(ArxSerializer& Serializer)
 
 void ArxPhysicsSystem::Update(int FrameId)
 {
-	SCOPE_CYCLE_COUNTER(STAT_PhysicsWorldUpdate);
-
 #if WITH_EDITOR
 	static FCriticalSection Mutex;
 	FScopeLock Lock(&Mutex);
 #endif
+
+	SCOPE_CYCLE_COUNTER(STAT_PhysicsWorldUpdate);
 	const auto SubstempTime = ArxConstants::TimeStep / ArxConstants::NumPhysicsStep;
 	for (int i = 0; i < ArxConstants::NumPhysicsStep; ++i)
 		PhysicsWorld->Update(FPToRp3d(SubstempTime));

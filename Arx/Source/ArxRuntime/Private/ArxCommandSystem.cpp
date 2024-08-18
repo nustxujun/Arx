@@ -2,7 +2,7 @@
 #include "ArxWorld.h"
     
 TMap<FName, uint32> ArxCommandSystem::IndexOfCommands;
-TArray<TFunction<TFunction<void(ArxEntity&, ArxPlayerId)>(ArxSerializer&)>> ArxCommandSystem::Executers;
+TArray<TSharedPtr<ArxBasicCommand>> ArxCommandSystem::Executers;
 TArray<TFunction<void(ArxSerializer&)>> ArxCommandSystem::SerializersForDebug;
 
 
@@ -68,14 +68,15 @@ void ArxCommandSystem::Update(int FrameId)
                 uint32 ExtIdx = IndexOfCommands[*Name];
 
                 check(Executers.IsValidIndex(ExtIdx));
-
-                FuncList.Add([this, EntId, PId = PlyId, Func = Executers[ExtIdx](Serializer)]() {
+                auto Cmd = Executers[ExtIdx];
+                Cmd->Serialize(Serializer);
+                FuncList.Add([this, EntId, PId = PlyId, Cmd ]() {
                     auto& Ent = *GetWorld().GetEntity(EntId);
                     checkf(Ent.GetPlayerId() == PId, 
                         TEXT("can not command an entity(type:%s ,id: %d, pid:%d) owned by other player(pid: %d)"), *Ent.GetClassName().ToString(), Ent.GetId(), Ent.GetPlayerId(), PId);
                     if (Ent.GetPlayerId() != PId) 
                         return; 
-                    Func(Ent, PId);
+                    Cmd->Execute(Ent, PId);
                 });
             
             }

@@ -4,7 +4,7 @@
 #include "ArxCommandSystem.h"
 #include "ArxDelegates.h"
 
-DECLARE_CYCLE_STAT(TEXT("Verify Frame"), STAT_VerifyFrame, STATGROUP_ArxGroup);
+DECLARE_CYCLE_STAT(TEXT("Create Snapshot"), STAT_VerifyFrame, STATGROUP_ArxGroup);
 DECLARE_CYCLE_STAT(TEXT("Process Commands"), STAT_ProcessCommands, STATGROUP_ArxGroup);
 DECLARE_CYCLE_STAT(TEXT("Recover from snapshot"), STAT_Recover, STATGROUP_ArxGroup);
 DECLARE_CYCLE_STAT(TEXT("World Update"), STAT_WorldUpdate, STATGROUP_ArxGroup);
@@ -91,10 +91,10 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 		CurrentFrame >= TargetFrame )
 		return;
 
-	SCOPE_CYCLE_COUNTER(STAT_WorldUpdate);
 
 	while ( CurrentFrame < TargetFrame && World.IsPrepared())
 	{
+		SCOPE_CYCLE_COUNTER(STAT_WorldUpdate);
 
 		if (!bBacktrace && CurrentFrame % VerificationCycle == 0)
 		{

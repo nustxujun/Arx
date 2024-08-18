@@ -6,6 +6,9 @@
 
 #include "CoreMinimal.h"
 
+DECLARE_CYCLE_STAT(TEXT("Visit ArxWorld In GameThread"), STAT_VisitArxWorld, STATGROUP_ArxGroup);
+
+
 struct ScopedBoolean
 {
 	bool& Value;
@@ -377,6 +380,8 @@ void ArxWorld::FAccessor::Tick(float DeltaTime)
 {
 	if (!bAccessable.load())
 		return;
+
+	SCOPE_CYCLE_COUNTER(STAT_VisitArxWorld);
 
 	check(IsInGameThread())
 	TArray<TFunction<void(const ArxWorld&)>> List;
