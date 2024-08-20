@@ -47,7 +47,7 @@ public:
 
     virtual void Update();
     virtual void OnRegister(ArxWorld& World) = 0;
-    virtual void CreateSnapshot(TArray<uint8>& Data) ;
+    virtual void MakeSnapshot(int FrameId) ;
 
     int GetCurrentFrameId(){return CurrentFrame;}
     ArxPlayerId GetPlayerId() override { return PlayerId; }

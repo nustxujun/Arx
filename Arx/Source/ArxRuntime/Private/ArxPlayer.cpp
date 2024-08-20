@@ -9,6 +9,8 @@ DECLARE_CYCLE_STAT(TEXT("Process Commands"), STAT_ProcessCommands, STATGROUP_Arx
 DECLARE_CYCLE_STAT(TEXT("Recover from snapshot"), STAT_Recover, STATGROUP_ArxGroup);
 DECLARE_CYCLE_STAT(TEXT("World Update"), STAT_WorldUpdate, STATGROUP_ArxGroup);
 
+#define RECOVER_FROM_SNAPSHOT 0
+
 ArxClientPlayer::ArxClientPlayer(UWorld* InWorld, int InVerificationCycle):World(InWorld),VerificationCycle(InVerificationCycle)
 {
 
@@ -49,12 +51,22 @@ void ArxClientPlayer::SyncStart()
 void ArxClientPlayer::ResponseVerifiedFrame(int FrameId)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Recover);
-	auto RealFrameId = GetRealFrameId(FrameId);
 
+#if RECOVER_FROM_SNAPSHOT
 	TargetFrame = CurrentFrame;
-	CurrentFrame = RealFrameId;
-	ArxReader Serializer(Snapshots.Get(RealFrameId));
+	CurrentFrame = FrameId;
+	ArxReader Serializer(Snapshots.Get(FrameId));
 	World.Serialize(Serializer);
+#else
+	TargetFrame = FMath::Max(CurrentFrame, FrameId) ;
+	if (CurrentFrame != 0)
+	{
+		ArxReader Serializer(Snapshots.Get(0));
+		World.Serialize(Serializer);
+	}
+	CurrentFrame = 0;
+#endif
+
 	Tick(true);
 
 	TargetFrame = ServerFrame;
@@ -79,10 +91,13 @@ void ArxClientPlayer::Update()
 	Tick(false);
 }
 
-void ArxClientPlayer::CreateSnapshot(TArray<uint8>& Data)
+void ArxClientPlayer::MakeSnapshot(int FrameId)
 {
+	SCOPE_CYCLE_COUNTER(STAT_VerifyFrame);
+	TArray<uint8> Data;
 	ArxWriter Serializer(Data);
 	World.Serialize(Serializer);
+	SendSnapshot(FrameId, Data);
 }
 
 void ArxClientPlayer::Tick(bool bBacktrace)
@@ -95,15 +110,10 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 	while ( CurrentFrame < TargetFrame && World.IsPrepared())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_WorldUpdate);
-
+		
 		if (!bBacktrace && CurrentFrame % VerificationCycle == 0)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_VerifyFrame);
-
-			TArray<uint8> Data;
-			CreateSnapshot(Data);
-
-			SendSnapshot(CurrentFrame, Data);
+			MakeSnapshot(CurrentFrame);
 		}
 
 		auto& ComSys = World.GetSystem<ArxCommandSystem>();

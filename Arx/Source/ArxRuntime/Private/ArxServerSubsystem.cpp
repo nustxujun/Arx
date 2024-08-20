@@ -238,7 +238,7 @@ ArxPlayerId UArxServerSubsystem::RegisterPlayer(ArxServerPlayer* Player)
 		Player->ResponseCommand(i, Cmds);
 	}
 
-	if (bStartFromSnapshot)
+	//if (bStartFromSnapshot)
 	{
 		// start from snapshot
 		auto LatestVerifiedFrame = GetLatestVerifiedFrame();
