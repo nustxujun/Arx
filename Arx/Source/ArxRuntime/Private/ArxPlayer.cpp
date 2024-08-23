@@ -109,7 +109,7 @@ void ArxClientPlayer::Tick(bool bBacktrace)
 
 	while ( CurrentFrame < TargetFrame && World.IsPrepared())
 	{
-		SCOPE_CYCLE_COUNTER(STAT_WorldUpdate);
+		TRACE_CPUPROFILER_EVENT_SCOPE(ArxWorld_Update);
 		
 		if (!bBacktrace && CurrentFrame % VerificationCycle == 0)
 		{
