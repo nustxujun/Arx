@@ -139,7 +139,7 @@ const FName ArxCommand<T>::TypeName = ArxCommand<T>::Register();
         Name##_Command<Args...> Cmd;\
         Cmd.Members = std::make_tuple(args ...);\
         checkf(IsInGameThread(), TEXT("recommand you to send commands in GameThread, if you don't know what are you doing now."));\
-        GetWorld().GetSystem<ArxCommandSystem>().SendCommand(GetId, MoveTemp(Cmd));\
+        GetWorld().GetSystem<ArxCommandSystem>().SendCommand(GetId(), MoveTemp(Cmd));\
     }\
     template<class ... Args> static void Name##_Static(ArxWorld& InWorld, ArxEntityId Id, const Args& ... args){\
         Name##_Command<Args...> Cmd;\
