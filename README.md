@@ -9,9 +9,9 @@ Lockstep plugin for unreal engine
 - [x] verification on server
 - [x] rollback
 - [x] replay tools in editor
+- [x] async
 - [ ] prediction
 - [ ] lua supported
-- [ ] async
 - [ ] ECS
 # Compatibility
 | UE Version| Windows| Mac |
