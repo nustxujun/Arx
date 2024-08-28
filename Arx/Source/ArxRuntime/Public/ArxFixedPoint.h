@@ -15,8 +15,8 @@ public:
     static constexpr unsigned int TotalBits = 64;
     static_assert(FractionBits < TotalBits - 1, "fraction can be greater than 62");
 
-    using fixed_raw = int64_t;
-    using internal_type = uint64_t;
+    using fixed_raw = int64;
+    using internal_type = uint64;
     static constexpr fixed_raw FRACTION = fixed_raw(1) << FractionBits;
 
     static constexpr internal_type FRACTION_MASK = (~internal_type(0)) >> (TotalBits - FractionBits);
@@ -512,14 +512,14 @@ constexpr FORCEINLINE FixedPoint64<F> sqrt(FixedPoint64<F> v)
     check(("sqrt input should be non-negative", v >= 0));
 
     using Fixed = FixedPoint64<F>;
-
-    uint64_t n = v.raw_value();
+    using IntType = typename Fixed::internal_type;
+    IntType n = v.raw_value();
     n <<= (F & 1);
 
-    uint64_t x = n;
-    uint64_t c = 0;
+    IntType x = n;
+    IntType c = 0;
 
-    uint64_t d = uint64_t(1) << ((64 - Fixed::clz(n) - 1) & ~(1));
+    IntType d = IntType(1) << ((64 - Fixed::clz(n) - 1) & ~(1));
 
     while (d != 0)
     {
@@ -536,7 +536,7 @@ constexpr FORCEINLINE FixedPoint64<F> sqrt(FixedPoint64<F> v)
         d >>= 2;
     }
 
-    return Fixed::from_raw(int64_t(c << (F / 2)));
+    return Fixed::from_raw(typename Fixed::fixed_raw(c << (F / 2)));
 }
 
 template <unsigned int F>

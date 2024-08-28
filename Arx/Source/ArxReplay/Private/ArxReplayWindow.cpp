@@ -1342,7 +1342,7 @@ ArxReplayWindow::FDummyWorld::FDummyWorld(UWorld* InWorld)
 			UnrealWorld->InitializeSubsystems();
 			bNeedDestroy = true;
 		}
-#if ENGINE_MAJOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION >= 5 && WITH_EDITOR
 		else if (!InWorld->HasEverBeenInitialized())
 		{
 			InWorld->InitWorld();

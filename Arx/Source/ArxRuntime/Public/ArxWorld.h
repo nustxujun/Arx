@@ -109,7 +109,7 @@ private:
     FAccessor Accessor;
     class UWorld* UnrealWorld;
     TArray<ArxEntityId> Systems; 
-    TSortedMap<uint64_t, ArxEntityId> SystemMap;
+    TSortedMap<uint64, ArxEntityId> SystemMap;
     TSparseArray<ArxEntity*> Entities;
     TMap<ArxEntityId, uint32> IdMap;
     TArray<ArxEntityId> DeadList;
